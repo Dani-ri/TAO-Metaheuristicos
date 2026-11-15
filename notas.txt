@@ -1,0 +1,4 @@
+15/11
+
+- función lectura de datos (leer_scp): pongo la mía pero habra que usar la misma
+- función tiempo_cpu: creo que en linux y windows funciona diferente, lo dejo con un if else para cubrir ambos
