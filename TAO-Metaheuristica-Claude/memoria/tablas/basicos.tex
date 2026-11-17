@@ -1,0 +1,20 @@
+\begin{table}[H]
+\centering
+\caption{Algoritmos básicos (deterministas): RPD medio respecto del óptimo, número medio de columnas de la solución y tiempo medio, en las 6 instancias de calibración y en las 24 de validación.}
+\label{tab:basicos}
+\small\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+ & \multicolumn{3}{c}{Calibración (6)} & \multicolumn{3}{c}{Validación (24)} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-7}
+Algoritmo & RPD (\%) & Columnas & $t$ (s) & RPD (\%) & Columnas & $t$ (s) \\ \midrule
+Voraz, criterio 1 (menor coste) & 15.85 & 243 & 0.017 & 15.52 & 240 & 0.014 \\
+Voraz, criterio 2 (mayor cobertura) & 33.43 & 49 & 0.002 & 31.61 & 49 & 0.002 \\
+Voraz, criterio 3 (cociente) & 6.60 & 167 & 0.007 & 6.45 & 166 & 0.007 \\
+\midrule
+Búsqueda local, $j_A=1$ & 6.60 & 167 & 0.007 & 6.45 & 166 & 0.008 \\
+Búsqueda local, $j_A=2$ & 6.22 & 167 & 0.010 & 6.14 & 165 & 0.008 \\
+Búsqueda local, $j_A=3$ & 4.82 & 142 & 0.026 & 4.67 & 139 & 0.024 \\
+\bottomrule
+\end{tabular}
+\end{table}

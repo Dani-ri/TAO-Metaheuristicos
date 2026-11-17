@@ -1,0 +1,162 @@
+% ============================================================================
+\section{Búsqueda local}\label{sec:local}
+% ============================================================================
+
+\subsection{Idea}
+
+La búsqueda local parte de una solución factible (la del constructivo) e intenta mejorarla
+con pequeños cambios. En cada paso examina las vecinas de la solución actual; si alguna es
+mejor, se mueve a ella y repite; si ninguna lo es, se detiene: ha llegado a un óptimo local.
+Los apuntes la describen así (transparencias de VNS): \emph{fijadas una solución inicial
+$S_0$ y una estructura de entornos $E$, se examinan solo las soluciones vecinas de $E(S_0)$;
+si existe $S_1$ en $E(S_0)$ mejor que $S_0$ se examina $E(S_1)$, y así sucesivamente; la
+búsqueda local termina al llegar a un óptimo local.}
+
+Todo depende, por tanto, de la estructura de entornos. Se han definido tres, de la más
+pequeña a la más grande. Las tres conservan la factibilidad.
+
+\subsection{Las tres estructuras de entornos}\label{sec:entornos}
+
+\paragraph{$\D1$: eliminación.} Quitar una columna redundante. Es el entorno más pequeño
+(como mucho tantas vecinas como columnas tiene la solución) y cualquier movimiento suyo
+mejora. Es la misma operación \cod{quitar\_redundantes} del constructivo.
+
+\paragraph{$\D2$: intercambio (1 por 1).} Sacar una columna $j$ de la solución y meter en su
+lugar una columna $k$ de fuera. Para que la solución siga siendo factible, $k$ debe cubrir
+todas las filas que \emph{solo} cubría $j$ (las llamaremos \textbf{filas únicas} de $j$). El
+movimiento mejora si $c_k<c_j$.
+
+\paragraph{$\D3$: inserción con expulsión (1 por $r$).} Meter una columna $k$ de fuera y
+sacar \emph{todas} las columnas que, gracias a $k$, se vuelven redundantes. Pueden ser una,
+dos, tres\ldots{} El valor del movimiento es
+\[
+  v(k) \;=\; c_k \;-\; \sum_{j\ \text{expulsada}} c_j ,
+\]
+y mejora la solución si $v(k)<0$. Este es el entorno que permite \emph{cambiar varias
+columnas pequeñas por una grande}, que es justo lo que necesitan estas instancias (la
+solución voraz tiene unas 167 columnas y la óptima 50).
+
+\begin{decision}[Decisión: por qué estos tres entornos]
+Son los movimientos más simples que conservan la factibilidad: quitar (1,0), cambiar (1,1) y
+cambiar una por varias (1,$r$). No se ha incluido el movimiento ``meter dos y sacar varias''
+porque su entorno tiene del orden de $n^2 = 10^8$ vecinas y no se puede explorar entero en
+cada paso; ese tipo de salto más amplio se deja a las perturbaciones de las metaheurísticas.
+Obsérvese que todo intercambio de $\D2$ que mejora es también un movimiento de $\D3$ (el
+caso en que $k$ expulsa a una sola columna), así que $\D3$ es estrictamente más potente; la
+utilidad de $\D2$ es que se explora más deprisa (solo mira las columnas que cubren una
+fila concreta) y resuelve antes los casos fáciles.
+\end{decision}
+
+\subsection{Cómo se evalúa un movimiento sin ejecutarlo}
+
+Evaluar un movimiento ``ejecutándolo, mirando el coste y deshaciéndolo'' sería lento. La
+clave para hacerlo rápido son las filas únicas. La función \cod{calcular\_unicas} recorre la
+solución una vez y anota:
+\begin{itemize}
+  \item para cada fila cubierta una sola vez, cuál es la columna que la cubre: su
+        \textbf{dueña} (\cod{duena[i]});
+  \item para cada columna de la solución, cuántas filas únicas tiene (\cod{nunic[j]}).
+\end{itemize}
+
+\begin{idea}[Idea clave]
+Al insertar $k$, una columna $j$ de la solución se vuelve redundante \textbf{si y solo si}
+$k$ cubre todas las filas únicas de $j$. Para saber a quién expulsa $k$ basta recorrer las
+filas de $k$ (unas 8), mirar cuáles tienen dueña y contar cuántas filas únicas de cada dueña
+cubre $k$. Si la cuenta de $j$ llega a \cod{nunic[j]}, $j$ sale.
+\end{idea}
+
+Así, evaluar la inserción de una columna cuesta lo que mide esa columna, y evaluar el entorno
+$\D3$ completo (las $\approx 9\,850$ columnas de fuera) cuesta recorrer una vez los unos de
+la matriz. Es lo que hace \cod{valor\_insercion}:
+
+\fragmento{busqueda_local.c}{80}{107}
+
+Queda un caso delicado: si $k$ vuelve redundantes a dos o más columnas, puede que no se
+puedan quitar todas a la vez (si dos de ellas comparten una fila que solo cubren ellas
+dos, al salir una la otra pasa a ser imprescindible). El código lo resuelve simulando: ordena las candidatas de
+más cara a más barata y va sacando solo las que \emph{siguen} siendo redundantes; después
+deshace la simulación. Es el mismo criterio ``la más cara primero'' del constructivo.
+
+\fragmento{busqueda_local.c}{122}{151}
+
+Para $\D2$ se usa un atajo distinto: como la columna que entra debe cubrir, en particular, la
+\emph{primera} fila única de la que sale, solo hay que probar las columnas que cubren esa
+fila (unas 150) en lugar de las 10\,000.
+
+\fragmento{busqueda_local.c}{183}{197}
+
+\subsection{Estrategia de exploración}
+
+\begin{decision}[Decisión: mejor vecino]
+Dentro de un entorno hay dos estrategias habituales: moverse a la \emph{primera} vecina que
+mejore o evaluar todas y moverse a la \emph{mejor}. Se usa la segunda (es la que describen
+los apuntes para el 2-opt: ``calcularíamos el coste de la solución obtenida con cada
+intercambio y realizaríamos aquel que dé lugar a la de menor coste''). Con la evaluación
+rápida de arriba, explorar el entorno entero es barato, y el resultado no depende del orden
+en que se recorran las columnas, lo que hace la búsqueda determinista y reproducible.
+\end{decision}
+
+\subsection{Combinación de los entornos: búsqueda descendente (VND)}\label{sec:vnd}
+
+Para combinar los tres entornos se usa el esquema de \emph{Búsqueda Descendente por entornos}
+(VND, \emph{Variable Neighborhood Descent}) de los apuntes de VNS:
+
+\begin{apuntes}[Esquema de los apuntes: Búsqueda Descendente (VND)]
+\begin{enumerate}[label=\arabic*.,itemsep=0pt]
+  \item Inicialización:
+  \begin{enumerate}[label=1.\arabic*,itemsep=0pt]
+    \item Construir solución inicial $S$
+    \item $A=\{\D1,\dots,\D{j_A}\}$
+    \item $j\gets 1$
+  \end{enumerate}
+  \item Repetir hasta que $j>j_A$:
+  \begin{enumerate}[label=2.\arabic*,itemsep=0pt]
+    \item Búsqueda local en $\D{j}$ con solución inicial $S$ $\rightsquigarrow$ $S'$
+    \item Si $z(S')<z(S)$ $\Rightarrow$ $S=S'$, $j=1$; \ en otro caso $\Rightarrow$ $j=j+1$
+  \end{enumerate}
+  \item $S$ es mínimo local con respecto a todas las estructuras de entornos de $A$.
+\end{enumerate}
+\end{apuntes}
+
+Es decir: se busca en el primer entorno hasta agotarlo; solo entonces se prueba el segundo;
+y en cuanto un entorno consigue mejorar, se vuelve al primero. Al terminar, la solución es
+óptimo local respecto de \emph{todos} los entornos a la vez. El código es una transcripción
+literal:
+
+\fragmento{busqueda_local.c}{268}{278}
+
+\begin{decision}[Decisión: orden de los entornos]
+Se ordenan del más barato de explorar al más caro ($\D1$, $\D2$, $\D3$). Así el entorno
+caro solo se explora cuando los baratos ya no pueden hacer nada, que es la recomendación
+habitual para el VND~\cite{vnsbasics}.
+\end{decision}
+
+El número de entornos $j_A$ es un parámetro (\cod{entornos}): 1, 2 o 3.
+
+\subsection{Resultados y elección de \texorpdfstring{$j_A$}{jA}}
+
+La ``búsqueda local'' de la práctica es: constructivo voraz + VND. La tabla~\ref{tab:basicos}
+compara $j_A=1,2,3$.
+
+\input{tablas/basicos}
+
+En las 6 instancias de calibración:
+\begin{itemize}
+  \item con $j_A=1$ el resultado es el del voraz (6.6\,\%), porque el voraz ya termina sin
+        columnas redundantes;
+  \item con $j_A=2$ (se añade el intercambio) baja a 6.2\,\%: mejora poco;
+  \item con $j_A=3$ (se añade la inserción con expulsión) baja a 4.8\,\%, y la solución pasa
+        de unas 167 columnas a unas 142. El tiempo sube de 8 a 24 milisegundos.
+\end{itemize}
+
+\begin{decision}[Decisión: $j_A=3$]
+La búsqueda local de la práctica usa los tres entornos. El entorno $\D3$ es el que de verdad
+aporta, y su coste en tiempo es despreciable. Como antes, la decisión se ha tomado con las 6
+instancias de calibración y las 24 de validación la confirman (4.7\,\% frente a 6.1\,\%).
+\end{decision}
+
+\begin{idea}[Qué queda por hacer]
+La búsqueda local tarda centésimas de segundo y se queda a un 4.7--4.8\,\% del óptimo. Las
+metaheurísticas disponen de 5 segundos (unas 200 veces más tiempo): la cuestión es cuánto de
+esa distancia consiguen recortar.
+\end{idea}

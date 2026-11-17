@@ -1,0 +1,81 @@
+% ============================================================================
+\section{Introducción}
+% ============================================================================
+
+\subsection{Qué pide la práctica}
+
+El enunciado plantea el \emph{problema de cubrimiento}
+\[
+  \min\ \{\, z = c^{\top}x \;\mid\; Ax \ge \mathbf{1},\ x \text{ binaria} \,\}
+\]
+con una matriz $A$ de $m$ filas y $n$ columnas y un vector de costes $c$, cuyos datos están
+en los ficheros \cod{SCPXX.dat}, y pide implementar:
+\begin{enumerate}
+  \item un algoritmo \textbf{constructivo} y uno de \textbf{búsqueda local};
+  \item las metaheurísticas \textbf{Temple Simulado} y \textbf{Búsqueda Tabú};
+  \item las metaheurísticas \textbf{GRASP} y \textbf{Algoritmo Genético};
+  \item una metaheurística de \textbf{Búsqueda en Entorno Variable} (VNS);
+  \item un informe con los algoritmos, el código, la \textbf{calibración de los parámetros},
+        las pruebas con las instancias y el análisis de los resultados.
+\end{enumerate}
+
+Esta memoria cubre los algoritmos, el código y la calibración (incluida la validación de la
+calibración). El informe final de resultados y la presentación se apoyarán en ella.
+
+\subsection{Qué se entrega}
+
+\begin{center}
+\begin{tabular}{@{}lp{11.2cm}@{}}
+\toprule
+Carpeta & Contenido \\ \midrule
+\cod{codigo/} & Programa en C (diez ficheros), comentado línea a línea, y el guion
+                \cod{compilar.sh} para compilarlo. Un único ejecutable, \cod{scp}, contiene
+                los siete algoritmos. \\
+\cod{experimentos/} & Guiones en Python que \emph{solo} lanzan el ejecutable muchas veces y
+                recogen lo que devuelve (los algoritmos están íntegramente en C), junto con
+                todos los ficheros de resultados. \\
+\cod{memoria/} & Este documento en \LaTeX{} y las tablas y figuras que se generan a partir de
+                los resultados. \\
+\cod{datos/} & Las 6 instancias usadas para \textbf{calibrar}. \\
+\cod{Validacion\_datos/} & Las 24 instancias usadas para \textbf{validar}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Cómo leer este documento}
+
+El documento está escrito para alguien que no conoce de antemano ni las metaheurísticas ni el
+lenguaje C. Por eso sigue siempre el mismo orden:
+\begin{itemize}
+  \item La sección~\ref{sec:problema} explica el problema y las instancias.
+  \item La sección~\ref{sec:conceptos} da el vocabulario mínimo (solución, entorno, óptimo
+        local, intensificar y diversificar) que se usa en todo lo demás.
+  \item La sección~\ref{sec:programa} describe las piezas del programa que comparten todos
+        los algoritmos. Conviene leerla antes que las siguientes.
+  \item Las secciones~\ref{sec:constructivo} a~\ref{sec:vns} dedican un apartado a cada
+        algoritmo con la misma estructura: \emph{idea}, \emph{esquema de los apuntes},
+        \emph{adaptación al problema} (con la justificación de cada decisión),
+        \emph{parámetros} y \emph{recorrido por el código}.
+  \item Las secciones~\ref{sec:metodologia} a~\ref{sec:validacion} explican cómo se han
+        elegido los valores de los parámetros y cómo se ha comprobado que la elección es
+        buena. Ahí se responde con detalle a la pregunta de \emph{qué instancias se usan para
+        calibrar y cuáles para validar}.
+  \item El apéndice contiene el código completo.
+\end{itemize}
+
+Tres tipos de recuadro ayudan a localizar lo importante:
+
+\begin{idea}
+Resume en dos o tres frases la idea que hay que retener.
+\end{idea}
+\begin{apuntes}
+Reproduce el esquema del algoritmo tal como aparece en los apuntes de la asignatura. El
+código sigue ese esquema paso a paso.
+\end{apuntes}
+\begin{decision}
+Explica una decisión que los apuntes dejan abierta (porque depende del problema) y por qué se
+ha resuelto de esa manera.
+\end{decision}
+
+\paragraph{Convenio numérico.} Los decimales se escriben con punto (4.13 y no 4,13) porque
+así los escribe el programa y así aparecen en los ficheros de resultados.

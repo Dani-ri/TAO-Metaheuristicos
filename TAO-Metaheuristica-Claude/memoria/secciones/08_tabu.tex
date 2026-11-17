@@ -1,0 +1,179 @@
+% ============================================================================
+\section{Búsqueda Tabú}\label{sec:tabu}
+% ============================================================================
+
+\subsection{Idea}
+
+La Búsqueda Tabú (\emph{Tabu Search}, Glover, 1986; Hansen, 1986) es una búsqueda local que
+\textbf{no se detiene} al llegar a un óptimo local. En cada iteración ejecuta el mejor
+movimiento disponible \emph{aunque empeore} la solución. El problema evidente es que, tras un
+movimiento que empeora, el mejor movimiento siguiente sería deshacerlo, y el algoritmo
+entraría en un ciclo sin fin entre dos soluciones. La solución es dotarlo de
+\textbf{memoria}:
+
+\begin{itemize}
+  \item \textbf{Memoria a corto plazo (lista tabú).} Los movimientos hechos recientemente
+        quedan prohibidos (son ``tabú'') durante un cierto número de iteraciones, que se
+        llama \emph{duración} tabú. Así no se puede volver atrás enseguida y la búsqueda se
+        ve obligada a alejarse del óptimo local.
+  \item \textbf{Función de aspiración.} Una prohibición puede impedir un movimiento
+        excelente. Por eso se permite saltarse el tabú si el movimiento cumple un criterio
+        de aspiración; lo habitual (dicen los apuntes) es aceptarlo \emph{si mejora la mejor
+        solución conocida hasta el momento}.
+  \item \textbf{Memoria a largo plazo.} Se registra la \emph{frecuencia} con que se ha hecho
+        cada movimiento desde el principio, y se usa para \emph{diversificar} (penalizar lo
+        que se ha hecho muchas veces, para visitar zonas nuevas) o para \emph{intensificar}
+        (volver a lo que ha dado buenos resultados). Según los apuntes, esto se hace
+        habitualmente añadiendo a la función objetivo una penalización proporcional a la
+        frecuencia del movimiento.
+\end{itemize}
+
+A diferencia del temple, la búsqueda tabú es esencialmente determinista: no decide al azar,
+sino que usa la historia de la búsqueda. Un tutorial clásico y de acceso libre
+es~\cite{glover}.
+
+\subsection{Esquema de los apuntes}
+
+\begin{apuntes}[Esquema de los apuntes: esquema de un algoritmo de búsqueda tabú]
+\begin{tabbing}
+\quad\=\quad\=\kill
+Inicialización: \ $s\in X$; \ $s^\ast=s$; \ $k=0$; \ $T=\emptyset$; \ $A(z)=z$\\
+Proceso:\\
+\> \textbf{do}\\
+\>\> $M(s,k)=\{\,m\in M \;/\; m\notin T \ \vee\ f(s\oplus m)<A(f(s))\,\}$ \quad (movimientos válidos)\\
+\>\> $V^\ast=\{\,s'\in X \;/\; s'=s\oplus m,\ m\in M(s,k)\,\}$ \quad (conjunto de vecinos)\\
+\>\> Se elige la mejor solución $s'\in V^\ast$\\
+\>\> If $(f(s')<f(s^\ast))$ \ $s^\ast=s'$\\
+\>\> Actualizar $T$ y $A(\cdot)$\\
+\>\> $k=k+1$; \ $s=s'$\\
+\> \textbf{while} (condición de parada)
+\end{tabbing}
+\end{apuntes}
+
+En palabras: $s\oplus m$ es la solución que resulta de aplicar el movimiento $m$ a $s$. En
+cada iteración se forma el conjunto $M(s,k)$ de movimientos \emph{válidos} (los que no están
+en la lista tabú $T$, más los que sí están pero cumplen la aspiración), se ejecuta el mejor
+de ellos y se actualizan la mejor solución $s^\ast$ y la lista tabú.
+
+\subsection{Adaptación al problema de cubrimiento}
+
+\paragraph{Movimientos.} Se necesitan movimientos que permitan tanto mejorar como empeorar de
+forma controlada, manteniendo la factibilidad.
+
+\begin{decision}[Decisión: dos tipos de movimiento simétricos]
+\begin{itemize}[itemsep=1pt]
+  \item \textbf{Entrada} de una columna $k$: entra $k$ y salen las columnas que $k$ vuelve
+        redundantes. Es el movimiento de $\D3$. Valor: $v=c_k-\sum c_{\text{salen}}$.
+  \item \textbf{Salida} de una columna $j$: sale $j$ y las filas que solo cubría ella se
+        vuelven a cubrir con el voraz del cociente (entran una o varias columnas). Valor:
+        $v=\sum c_{\text{entran}}-c_j$.
+\end{itemize}
+La entrada cambia ``varias por una'' y la salida ``una por varias''. Hacen falta las dos: con
+solo entradas la búsqueda únicamente puede reducir el número de columnas y se queda sin
+movimientos útiles en cuanto llega a un óptimo local de $\D3$; las salidas le permiten
+desandar el camino por otro sitio. En cada iteración se valoran \emph{todos} los movimientos
+de ambos tipos y se ejecuta el de menor valor admisible, sea negativo (mejora) o positivo
+(empeora).
+\end{decision}
+
+\paragraph{Qué se declara tabú.} No se guardan soluciones completas (compararlas sería
+carísimo), sino \emph{atributos} de los movimientos: las columnas que han entrado o salido.
+
+\begin{decision}[Decisión: dos listas tabú, una de entrada y otra de salida]
+\begin{itemize}[itemsep=1pt]
+  \item Una columna que \textbf{sale} no puede volver a \textbf{entrar} durante un tiempo.
+        Impide deshacer el movimiento.
+  \item Una columna que \textbf{entra} no puede \textbf{salir} durante un tiempo. Impide que
+        la expulsen nada más llegar, antes de que la búsqueda haya podido aprovecharla.
+\end{itemize}
+Cada lista tiene su propia duración (\cod{tent} y \cod{tsal}) porque no son simétricas: hay
+casi 9\,900 columnas fuera de la solución y solo unas 130 dentro. Prohibir la entrada de 20
+columnas apenas restringe; prohibir la salida de 20 columnas bloquea una parte apreciable de
+la solución. Por eso cabe esperar que convenga $\cod{tsal}<\cod{tent}$; la calibración lo
+comprueba (sección~\ref{sec:cal-tabu}).
+\end{decision}
+
+\begin{decision}[Decisión: cómo se implementa la lista tabú]
+No hay una ``lista'' propiamente dicha. Para cada columna $j$ se guarda el número de la
+iteración hasta la cual está prohibida: \cod{tabu\_ent[j]} y \cod{tabu\_sal[j]}. Comprobar si
+un movimiento es tabú es una comparación (\cod{tabu\_ent[k] > iter}) y las prohibiciones
+caducan solas, sin tener que borrar nada. Es equivalente a la ``estructura de datos tabú'' de
+los apuntes, que guarda cuántas iteraciones de prohibición le quedan a cada movimiento, pero
+evita tener que restar uno a todas las casillas en cada iteración.
+\end{decision}
+
+\begin{decision}[Decisión: duración aleatoria]
+La duración de cada prohibición se sortea entre \cod{ten} y $2\cdot\cod{ten}$. Con una
+duración fija, la búsqueda puede caer en ciclos de longitud mayor que la duración; variarla
+al azar los rompe. Es la recomendación de~\cite[sec.~3.2.3]{glover}.
+\end{decision}
+
+\paragraph{Función de aspiración.} Los apuntes dan dos ejemplos, $A(z)=z$ y
+$A(z)=C(x^\ast)$, y añaden que ``es habitual solo aceptar un movimiento tabú si mejora la
+mejor solución conocida hasta el momento''. Se usa esta segunda, $A=f(s^\ast)$: un
+movimiento tabú se admite si lleva a una solución mejor que la mejor conocida. No puede
+producir ciclos (una solución mejor que todas las anteriores es, por fuerza, nueva), cosa que
+$A(z)=z$ no garantiza.
+
+\paragraph{Memoria a largo plazo: diversificación.} \cod{frec[j]} cuenta cuántas veces ha
+entrado la columna $j$ en la solución. Al comparar movimientos no se usa el valor $v$ sino el
+valor penalizado
+\[
+   v' \;=\; v \;+\; \beta\cdot\sum_{j\ \text{que entra}} \cod{frec}[j] ,
+\]
+de modo que, a igualdad de valor, se prefieren las columnas que se han usado poco. Es la
+misma idea del ejemplo de los apuntes~\cite{yanez}, donde al valor de cada movimiento se le
+resta su frecuencia absoluta (allí el problema es de máximo; aquí, de mínimo, se suma). El
+peso $\beta$ es necesario porque nuestros valores son costes reales y las frecuencias son
+números enteros: sin él no serían comparables. Con $\beta=0$ no hay memoria a largo plazo.
+
+\paragraph{Intensificación.} Si pasan \cod{reinicio} iteraciones sin mejorar $s^\ast$, la
+búsqueda vuelve a $s^\ast$ con las listas tabú vacías. Las frecuencias \emph{no} se borran,
+así que la búsqueda no repetirá el mismo camino que la vez anterior.
+
+\paragraph{Limpieza.} Tras un movimiento pueden quedar columnas redundantes. Se eliminan las
+que no estén protegidas por el tabú de salida, y cada una queda con prohibición de volver a
+entrar.
+
+\subsection{Parámetros}
+
+\begin{center}
+\begin{tabular}{@{}lp{11.3cm}@{}}
+\toprule
+Nombre & Significado y efecto \\ \midrule
+\cod{tent} & Duración tabú de \emph{entrada} (para las columnas que salen). Corta: riesgo de
+             ciclos. Larga: se prohíben demasiadas columnas buenas. \\
+\cod{tsal} & Duración tabú de \emph{salida} (para las columnas que entran). \\
+\cod{beta} & Peso $\beta$ de la penalización por frecuencia. Mayor: más diversificación. \\
+\cod{reinicio} & Iteraciones sin mejora antes de volver a $s^\ast$. Menor: más
+             intensificación. Un valor enorme equivale a no reiniciar nunca. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Recorrido por el código}
+
+Cada iteración empieza valorando todas las entradas. Obsérvese la condición de admisibilidad
+(tabú y aspiración) y la penalización por frecuencia, que corresponden a la definición de
+$M(s,k)$ del esquema:
+
+\fragmento{tabu.c}{195}{208}
+
+Después se valoran las salidas con \cod{valor\_salida}, que simula la reparación voraz
+mirando solo las filas únicas de la columna que sale (son muy pocas), sin tocar la solución.
+Elegido el mejor movimiento, se ejecuta y se actualizan las dos listas tabú y las
+frecuencias (``Actualizar $T$'' en el esquema):
+
+\fragmento{tabu.c}{245}{262}
+
+Por último se actualiza la mejor solución y, si procede, se intensifica:
+
+\fragmento{tabu.c}{269}{287}
+
+\begin{idea}[Coste de una iteración]
+Una iteración tabú valora casi 9\,900 entradas y unas 130 salidas, lo que supone recorrer
+los unos de la matriz. El programa hace unas 950 iteraciones por segundo. Es decir, en el
+mismo tiempo la búsqueda tabú da unas 90 veces menos pasos que el temple, pero cada paso es
+el \emph{mejor} de unos 10\,000 movimientos y no uno al azar. Son dos formas opuestas de
+gastar el tiempo de cálculo.
+\end{idea}

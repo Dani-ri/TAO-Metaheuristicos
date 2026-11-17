@@ -1,0 +1,20 @@
+\begin{table}[H]
+\centering
+\caption{Estructura de las soluciones en las 6 instancias de calibración (semilla 1): RPD, número de columnas y cuántas de ellas pertenecen también a la solución óptima, que tiene 50 columnas. Medias de las 6 instancias.}
+\label{tab:estructura}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Solución & RPD (\%) & Columnas & Comunes con la óptima \\ \midrule
+Voraz, criterio 2 (mayor cobertura) & 33.43 & 49.2 & 27.2 \\
+Voraz, criterio 3 (cociente) & 6.60 & 167.3 & 3.0 \\
+Búsqueda local ($j_A=3$) & 4.82 & 141.7 & 3.2 \\
+\midrule
+Temple Simulado & 4.14 & 148.3 & 4.3 \\
+Búsqueda Tabú & 4.02 & 124.5 & 4.0 \\
+GRASP & 3.27 & 128.3 & 5.3 \\
+Algoritmo Genético & 4.33 & 145.0 & 5.3 \\
+VNS & 3.68 & 128.8 & 2.7 \\
+Solución óptima & 0.00 & 50.0 & 50.0 \\
+\bottomrule
+\end{tabular}
+\end{table}

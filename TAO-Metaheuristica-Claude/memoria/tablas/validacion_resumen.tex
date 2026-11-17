@@ -1,0 +1,20 @@
+\begin{table}[H]
+\centering
+\caption{Calibración frente a validación. RPD (\%) respecto del óptimo de la configuración final de cada algoritmo: media en las 6 instancias de calibración y media, desviación típica, mínimo y máximo sobre las ejecuciones en las 24 instancias de validación. Las dos últimas columnas son el número medio de columnas de la solución y el instante medio en que se encontró la mejor solución, en validación.}
+\label{tab:validacion}
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+ & Calibración & \multicolumn{6}{c}{Validación} \\
+\cmidrule(lr){2-2}\cmidrule(l){3-8}
+Algoritmo & Media & Media & Desv. & Mín. & Máx. & Columnas & $t_{\text{mejor}}$ (s) \\ \midrule
+Constructivo voraz & 6.596 & 6.448 & 0.738 & 5.167 & 7.622 & 166 & --- \\
+Búsqueda local ($j_A=3$) & 4.817 & 4.665 & 0.539 & 3.816 & 6.073 & 139 & --- \\
+\midrule
+Temple Simulado & 4.127 & 4.067 & 0.344 & 3.131 & 4.910 & 149 & 3.75 \\
+Búsqueda Tabú & 4.095 & 4.109 & 0.438 & 3.231 & 4.932 & 128 & 1.13 \\
+GRASP & 3.441 & 3.448 & 0.312 & 2.639 & 4.206 & 130 & 4.32 \\
+Algoritmo Genético & 4.292 & 4.275 & 0.452 & 3.112 & 5.298 & 144 & 4.51 \\
+VNS & 3.585 & 3.521 & 0.451 & 2.435 & 4.499 & 124 & 3.90 \\
+\bottomrule
+\end{tabular}
+\end{table}

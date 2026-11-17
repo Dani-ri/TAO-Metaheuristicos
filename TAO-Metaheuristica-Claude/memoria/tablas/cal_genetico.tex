@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\caption{Calibración de Algoritmo Genético. Cada fila es una etapa: RPD medio (\%) sobre las 18 ejecuciones (6 instancias $\times$ 3 semillas) de cada valor probado, con los demás parámetros fijos. En negrita, el mejor.}
+\label{tab:cal-genetico}
+\small
+\begin{tabular}{@{}cl>{\raggedright\arraybackslash}p{10.4cm}c@{}}
+\toprule
+Etapa & Parámetro & Valor probado $\rightarrow$ RPD medio & Elegido \\ \midrule
+1 & \texttt{cruce} & 1\,$\rightarrow$\,\textbf{5.176};\quad 2\,$\rightarrow$\,5.436;\quad 3\,$\rightarrow$\,5.267 & 1 \\
+2 & \texttt{pob} & 20\,$\rightarrow$\,\textbf{5.021};\quad 50\,$\rightarrow$\,5.176;\quad 100\,$\rightarrow$\,5.155 & 20 \\
+3 & \texttt{pmut} & 0\,$\rightarrow$\,5.714;\quad 0.2\,$\rightarrow$\,5.021;\quad 0.5\,$\rightarrow$\,4.819;\quad 1.0\,$\rightarrow$\,\textbf{4.774} & 1.0 \\
+4 & \texttt{nmut} & 1\,$\rightarrow$\,5.036;\quad 2\,$\rightarrow$\,4.774;\quad 5\,$\rightarrow$\,\textbf{4.613} & 5 \\
+5 & \texttt{bl} & 0\,$\rightarrow$\,4.613;\quad 2\,$\rightarrow$\,\textbf{4.292} & 2 \\
+\bottomrule
+\end{tabular}
+\end{table}

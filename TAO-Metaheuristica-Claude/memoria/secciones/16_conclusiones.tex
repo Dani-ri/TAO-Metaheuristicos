@@ -1,0 +1,107 @@
+% ============================================================================
+\section{Conclusiones}\label{sec:conclusiones}
+% ============================================================================
+
+\subsection{Qué se ha hecho}
+
+Se han implementado en C, sobre una base común de estructuras de datos, un algoritmo
+constructivo, una búsqueda local con tres estructuras de entornos y cinco metaheurísticas que
+siguen los esquemas de los apuntes. Sus 21 parámetros se han calibrado con un procedimiento
+de un factor cada vez sobre 6 instancias, y las configuraciones resultantes se han validado
+sobre otras 24. En total, \input{tablas/num_ejecuciones} ejecuciones, todas con solución
+factible verificada de forma independiente.
+
+\subsection{Resultados}
+
+\begin{center}
+\begin{tabular}{@{}lcl@{}}
+\toprule
+Algoritmo & RPD en validación & Tiempo \\ \midrule
+Constructivo voraz (cociente) & 6.45\,\% & 0.01 s \\
+Búsqueda local ($\D1,\D2,\D3$) & 4.67\,\% & 0.03 s \\
+Algoritmo Genético & 4.28\,\% & 5 s \\
+Búsqueda Tabú & 4.11\,\% & 5 s \\
+Temple Simulado & 4.07\,\% & 5 s \\
+VNS & 3.52\,\% & 5 s \\
+GRASP & 3.45\,\% & 5 s \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{itemize}
+  \item Las cinco metaheurísticas mejoran a la búsqueda local, y la validación confirma que
+        los parámetros elegidos no están sobreajustados.
+  \item \textbf{GRASP (con memoria) y VNS son las mejores}, empatadas entre sí, medio punto
+        por delante de temple y tabú. Las dos tienen algo en común: aplican la búsqueda
+        local completa (con el entorno $\D3$) a muchas soluciones distintas.
+  \item El \textbf{genético} es el más flojo; en la forma calibrada funciona, de hecho, como
+        una búsqueda por perturbación (muta todos los hijos) más que como un algoritmo
+        evolutivo.
+  \item La ganancia de las metaheurísticas sobre la búsqueda local es modesta: entre 0.4 y
+        1.2 puntos a cambio de 200 veces más tiempo.
+\end{itemize}
+
+\subsection{Por qué ninguna baja del 3.4\,\%}\label{sec:barrera}
+
+Este es el resultado más llamativo y merece una explicación. La tabla~\ref{tab:estructura}
+compara las soluciones de cada algoritmo con la solución óptima, columna a columna.
+
+\input{tablas/estructura}
+
+\begin{itemize}
+  \item La solución óptima usa \textbf{50 columnas grandes}. Las soluciones de todos los
+        heurísticos usan entre 125 y 170 \textbf{columnas pequeñas y baratas}, y solo
+        comparten con la óptima entre 3 y 5 columnas. No están ``cerca del óptimo con algún
+        detalle por pulir'': son soluciones de otra clase, que casualmente cuestan casi lo
+        mismo.
+  \item El voraz de mayor cobertura (criterio 2) sí encuentra más de la mitad de las columnas
+        óptimas (27 de 50), pero completa la solución con columnas grandes equivocadas y
+        carísimas, y queda un 33\,\% por encima.
+  \item Hay, por tanto, \textbf{dos familias de soluciones}: muchas columnas pequeñas (a un
+        3--6\,\% del óptimo) y pocas columnas grandes (donde está el óptimo, pero también
+        soluciones muy malas). Para pasar de la primera a la segunda hay que cambiar más de
+        cien columnas, y los pasos intermedios son peores: tener ya la mitad de las columnas
+        óptimas no garantiza nada, como muestra el criterio 2.
+  \item El criterio del cociente coste/cobertura, que es el que guía la construcción, las
+        reparaciones y las perturbaciones de todos los algoritmos, empuja siempre hacia la
+        primera familia, porque las columnas diminutas y casi gratuitas tienen mejor
+        cociente que las columnas de la solución óptima.
+\end{itemize}
+
+\begin{idea}[Interpretación]
+Las cinco metaheurísticas exploran bien la familia de soluciones de columnas pequeñas (por
+eso mejoran a la búsqueda local y son robustas en validación), pero ninguno de sus
+mecanismos de escape (aceptar empeoramientos, prohibir movimientos, reiniciar, cruzar,
+saltar) es capaz de dar el salto a la otra familia en 5 segundos. No es un problema de
+calibración: la calibración mueve los resultados unas décimas, y la distancia al óptimo es
+de más de tres puntos.
+\end{idea}
+
+Como se indicó en la sección~\ref{sec:optimos}, estas instancias tienen además una propiedad
+especial (la relajación lineal ya da el óptimo entero) que las hace fáciles para un método
+exacto. Un heurístico que usara la información de la relajación lineal o de sus variables
+duales para elegir columnas tendría aquí una gran ventaja, pero eso queda fuera de las
+metaheurísticas que pide la práctica.
+
+\subsection{Limitaciones y posibles mejoras}
+
+\begin{itemize}
+  \item \textbf{Calibración de una vuelta.} No capta interacciones entre parámetros, y en
+        varios parámetros ganó un valor extremo de su lista (por ejemplo \cod{alfa} del
+        temple, \cod{lrc} y \cod{elite} de GRASP, o \cod{pob}, \cod{nmut} y \cod{bl} del
+        genético), de modo que el mejor valor podría estar más allá. La segunda vuelta
+        opcional de \cod{calibrar.py} está pensada para eso.
+  \item \textbf{Tres semillas.} Suficientes para elegir parámetros con diferencias claras,
+        justas para los empates. Para el informe convendría ejecutar las configuraciones
+        finales con más semillas (por ejemplo 10) y aplicar pruebas estadísticas a todas las
+        comparaciones.
+  \item \textbf{Un único límite de tiempo.} Los parámetros son los mejores para 5 segundos.
+        La figura~\ref{fig:convergencia} indica que GRASP, VNS y temple todavía mejoran al
+        final, así que con más tiempo las diferencias podrían cambiar.
+  \item \textbf{Una única familia de instancias.} Todas tienen el mismo tamaño y estructura;
+        las conclusiones no se pueden extender sin más a otros problemas de cubrimiento.
+  \item \textbf{Movimientos.} La explicación de la sección~\ref{sec:barrera} sugiere dónde
+        buscar mejoras: construcciones o reparaciones que no usen solo el cociente (por
+        ejemplo, alternándolo con el criterio de mayor cobertura) para sembrar soluciones de
+        la otra familia.
+\end{itemize}

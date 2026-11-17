@@ -1,0 +1,205 @@
+% ============================================================================
+\section{Metodología experimental: calibrar y validar}\label{sec:metodologia}
+% ============================================================================
+
+\subsection{Por qué hay que calibrar}
+
+Las cinco metaheurísticas tienen parámetros (la temperatura inicial, la duración tabú, el
+tamaño de la población\ldots) y su rendimiento depende mucho de ellos. Los apuntes no dan
+valores porque no existen valores universales: dependen del problema, de las instancias y
+del tiempo disponible. \textbf{Calibrar} es elegir esos valores mediante experimentos. Hay 21
+parámetros en total y hay que justificar el valor de cada uno.
+
+\subsection{Calibración y validación: qué instancias se usan para cada cosa}\label{sec:protocolo}
+
+\begin{idea}[Respuesta corta]
+Sí, es correcto: las instancias de la carpeta \cod{datos/} se usan para \textbf{calibrar} y
+las de \cod{Validacion\_datos/} para \textbf{validar}. La regla que hace que esto funcione es
+una sola: \emph{ninguna decisión se toma mirando las instancias de validación}.
+\end{idea}
+
+\paragraph{El problema que se quiere evitar.} Supóngase que se prueban 70 configuraciones
+sobre las 30 instancias y se elige la mejor. Después se informa de lo bien que funciona esa
+configuración\ldots{} sobre las mismas 30 instancias. Ese resultado es \emph{optimista}: la
+configuración se eligió precisamente porque iba bien en esas instancias, y parte de su
+ventaja puede deberse a la casualidad (a que encaja con las particularidades de esos
+ficheros y de esas semillas) y no a que sea realmente mejor. Este fenómeno se llama
+\textbf{sobreajuste}. Es el mismo problema que en estadística o en aprendizaje automático:
+no se puede evaluar un modelo con los mismos datos con los que se ha ajustado.
+
+\paragraph{La solución.} Separar las instancias en dos grupos que no se mezclan:
+\begin{itemize}
+  \item \textbf{Instancias de calibración} (también llamadas de \emph{entrenamiento} o de
+        ajuste). Con ellas se prueban todas las configuraciones y se toman todas las
+        decisiones.
+  \item \textbf{Instancias de validación} (o de \emph{prueba}). Solo se usan al final, una
+        vez fijados todos los parámetros, para medir cómo funciona la configuración elegida
+        sobre instancias que \emph{no ha visto nunca}.
+\end{itemize}
+Es el procedimiento estándar en la configuración de algoritmos; así trabajan, por ejemplo,
+las herramientas de configuración automática como irace~\cite{irace}, que distinguen
+explícitamente entre instancias de entrenamiento e instancias de prueba.
+
+\paragraph{Cómo se interpreta la validación.}
+\begin{itemize}
+  \item Si el rendimiento en validación es parecido al de calibración, los parámetros
+        elegidos \emph{generalizan}: funcionan bien en instancias de este tipo, no solo en
+        las seis con las que se eligieron.
+  \item Si en validación es claramente peor, hay sobreajuste: la calibración ha aprendido
+        particularidades de sus instancias.
+  \item El resultado de validación es, además, la estimación honesta de la calidad de cada
+        algoritmo. \textbf{Las cifras que deben ir al informe final son las de validación},
+        no las de calibración.
+\end{itemize}
+
+\paragraph{Lo que no se puede hacer.} Mirar los resultados de validación y, a la vista de
+ellos, volver a tocar un parámetro. En cuanto se hace eso, las instancias de validación han
+participado en una decisión y dejan de ser independientes: se convierten, de hecho, en
+instancias de calibración. Si se quisiera hacer una segunda ronda de ajuste haría falta un
+tercer grupo de instancias reservado para la validación final. En esta práctica la
+validación se ejecuta una sola vez, al terminar la calibración, y después no se modifica
+nada.
+
+\paragraph{El reparto 6 / 24.}
+
+\begin{center}
+\begin{tabular}{@{}llp{6.6cm}@{}}
+\toprule
+Carpeta & Instancias & Uso \\ \midrule
+\cod{datos/} & SCP01, 06, 11, 16, 21, 26 (6) & Calibración: todas las decisiones. \\
+\cod{Validacion\_datos/} & las 24 restantes & Validación: una sola ejecución final. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{decision}[Por qué pocas instancias para calibrar y muchas para validar]
+\begin{itemize}[itemsep=1pt]
+  \item \emph{Calibrar es caro}: cada configuración candidata se ejecuta sobre todas las
+        instancias de calibración y con varias semillas. Con 6 instancias, 3 semillas y 5
+        segundos, evaluar \emph{una} configuración son 90 segundos de cálculo, y hay que
+        evaluar decenas.
+  \item \emph{Validar es barato}: solo se ejecuta una configuración por algoritmo. Conviene
+        hacerlo sobre muchas instancias para que la estimación sea fiable.
+  \item \emph{Seis bastan porque las instancias son homogéneas}: las 30 tienen el mismo
+        tamaño y la misma estructura (tabla~\ref{tab:instancias}). Si hubiera familias
+        distintas (tamaños o densidades diferentes) habría que incluir representantes de
+        cada una en ambos grupos.
+  \item \emph{Las seis no se han escogido a dedo}: son una de cada cinco (01, 06, 11,
+        \ldots), es decir, una muestra sistemática. Elegir ``las que mejor salen'' sería
+        otra forma de sobreajuste.
+\end{itemize}
+\end{decision}
+
+El mismo criterio se ha aplicado a las decisiones de los algoritmos básicos: el criterio
+voraz (sección~\ref{sec:res-voraz}) y el número de entornos de la búsqueda local se han
+elegido con las 6 instancias de calibración.
+
+\subsection{Medida de calidad: RPD}\label{sec:rpd}
+
+El coste óptimo no es el mismo en todas las instancias (va de 322 a 391), así que los costes
+no se pueden promediar ni comparar directamente. Se usa la \textbf{desviación porcentual
+relativa} respecto del óptimo (RPD, \emph{Relative Percentage Deviation}):
+\[
+  \rpd \;=\; 100\cdot\frac{z-z^\ast}{z^\ast}\ \%,
+\]
+donde $z$ es el coste obtenido y $z^\ast$ el óptimo de la instancia
+(sección~\ref{sec:optimos}). Un RPD de 0 significa que se ha encontrado el óptimo; un RPD de 4
+significa un 4\,\% más caro que el óptimo. Menor es mejor. El RPD de una configuración es la
+\emph{media} de los RPD de todas sus ejecuciones.
+
+\subsection{Semillas}
+
+Las metaheurísticas usan números aleatorios, de modo que dos ejecuciones dan resultados
+distintos. Juzgar una configuración por una sola ejecución sería juzgarla en parte por
+suerte. Cada configuración se ejecuta con 3 semillas (1, 2 y 3) en cada instancia:
+\begin{itemize}
+  \item calibración: $6\times 3=18$ ejecuciones por configuración;
+  \item validación: $24\times 3=72$ ejecuciones por algoritmo.
+\end{itemize}
+Las semillas son las mismas para todas las configuraciones, de modo que la comparación entre
+ellas es lo más pareja posible.
+
+\subsection{Presupuesto de cálculo}
+
+Todas las ejecuciones de todas las metaheurísticas tienen el mismo límite: \textbf{5 segundos
+de CPU}. Darles el mismo tiempo es lo que hace justa la comparación entre algoritmos.
+
+\begin{idea}[Advertencia: los parámetros dependen del tiempo]
+Los valores calibrados son los mejores \emph{para 5 segundos}. Algunos parámetros (sobre
+todo $\alpha$ y $L$ del temple, que fijan a qué velocidad se enfría) están directamente
+ligados al tiempo disponible. Si el informe final usara otro límite de tiempo, habría que
+recalibrarlos.
+\end{idea}
+
+Las ejecuciones de referencia de esta memoria se han hecho en un procesador Intel Xeon a
+2.1~GHz, con el programa compilado con \cod{gcc -O2}. En un ordenador más rápido el programa
+hace más iteraciones en los mismos 5 segundos y los resultados son algo mejores; por eso, si
+se repiten los experimentos en otra máquina, hay que repetir \emph{todos} (calibración y
+validación) en la misma y regenerar las tablas (sección~\ref{sec:uso}).
+
+\subsection{Procedimiento: un factor cada vez}\label{sec:ofat}
+
+\paragraph{Por qué no se prueban todas las combinaciones.} El temple tiene 5 parámetros. Con
+3 o 4 valores para cada uno hay $4\cdot4\cdot4\cdot3\cdot3=576$ combinaciones; a 90 segundos
+cada una, más de 14 horas solo para el temple. No es viable.
+
+\paragraph{El procedimiento.} Para cada algoritmo:
+\begin{enumerate}
+  \item Se parte de una \textbf{configuración base} razonable y de una lista de valores
+        candidatos para cada parámetro.
+  \item Se toma el primer parámetro y se prueban todos sus valores candidatos,
+        \emph{dejando los demás parámetros como están}. Se fija el valor con menor RPD
+        medio.
+  \item Se pasa al segundo parámetro, y así hasta el último. Cada paso se llama
+        \emph{etapa}.
+\end{enumerate}
+En caso de empate se conserva el valor que ya estaba. Este procedimiento se conoce como
+\emph{un factor cada vez} (OFAT, \emph{one factor at a time}). Con él, el temple necesita
+evaluar 14 configuraciones en lugar de 576, y las cinco metaheurísticas juntas,
+\input{tablas/num_configs} configuraciones (\input{tablas/num_ejecuciones_cal} ejecuciones).
+
+\begin{decision}[Por qué este procedimiento]
+Es el más barato que permite justificar \emph{cada} parámetro por separado con una tabla: se
+ve qué valores se probaron, qué resultado dio cada uno y por qué se eligió el que se eligió.
+Además muestra la \emph{sensibilidad}: si al mover un parámetro el RPD apenas cambia, ese
+parámetro importa poco; si cambia mucho, es crítico.
+\end{decision}
+
+\paragraph{Valores candidatos.} Para cada parámetro se han tomado 3 o 4 valores que cubren
+de ``poco'' a ``mucho'', incluyendo cuando existe el valor que \emph{desactiva} el mecanismo
+($\beta=0$: sin memoria a largo plazo; $\lambda_f=1$: sin memoria en GRASP; \cod{pmut}~$=0$:
+sin mutación; \cod{bl}~$=0$: sin mejora local; \cod{reinicio} enorme: sin intensificación).
+Así la calibración sirve también para comprobar si cada componente del algoritmo aporta algo.
+
+\paragraph{Cuándo una diferencia es real.} Dos ejecuciones de la misma configuración sobre la
+misma instancia con distinta semilla difieren, de media, en una o dos décimas de RPD
+(desviación típica entre semillas de 0.08 a 0.27 según el algoritmo). Al promediar 18
+ejecuciones ese ruido se reduce, pero no desaparece: \textbf{diferencias de menos de unas
+cinco centésimas entre dos valores de un parámetro no son significativas} y deben leerse como
+un empate.
+
+\paragraph{Limitaciones, y la segunda vuelta opcional.} El método tiene dos debilidades
+conocidas:
+\begin{itemize}
+  \item Ignora las \emph{interacciones}: el mejor valor de un parámetro puede depender del
+        valor de otro, y los primeros parámetros se eligen cuando los últimos aún están en
+        su valor base.
+  \item Solo explora los valores de la lista. Si gana el valor más grande (o el más
+        pequeño) de la lista, puede que el óptimo esté más allá.
+\end{itemize}
+Para atenuarlas, el guion \cod{calibrar.py} admite una \textbf{segunda vuelta} opcional
+(\cod{VUELTAS=2 python3 calibrar.py}): repasa otra vez todos los parámetros con los demás ya
+en sus valores elegidos y, cuando el valor vigente es un extremo de su lista, añade un valor
+más en esa dirección. Duplica aproximadamente el tiempo de cálculo. Los resultados de esta
+memoria corresponden a \textbf{una vuelta}; en la sección~\ref{sec:calibracion} se señala en
+qué parámetros la segunda vuelta tendría más interés. Para un estudio más ambicioso, la
+alternativa actual es la configuración automática con herramientas como
+irace~\cite{irace}, que reparten el esfuerzo de cálculo de forma estadísticamente eficiente.
+
+\subsection{Reproducibilidad}
+
+Todo el experimento se puede repetir con tres órdenes (sección~\ref{sec:uso}). Los guiones
+guardan cada ejecución en un fichero CSV en cuanto termina y, si se interrumpen, continúan
+donde lo dejaron sin repetir nada. Las tablas y figuras de esta memoria las genera
+\cod{generar\_tablas.py} a partir de esos ficheros: ninguna cifra de las tablas se ha copiado
+a mano.

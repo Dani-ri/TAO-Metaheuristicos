@@ -1,0 +1,138 @@
+% ============================================================================
+\section{GRASP}\label{sec:grasp}
+% ============================================================================
+
+\subsection{Idea}
+
+GRASP (\emph{Greedy Randomized Adaptive Search Procedure}, Feo y Resende, 1989) nació
+precisamente para un problema de cubrimiento difícil. Su idea es la más sencilla de las
+cinco: en lugar de intentar escapar de un óptimo local, \textbf{se empieza de nuevo} desde
+otra solución inicial, muchas veces, y se guarda la mejor. Cada iteración tiene dos fases:
+\begin{enumerate}
+  \item \textbf{Fase constructiva}: se construye una solución partiendo de cero.
+  \item \textbf{Fase de búsqueda local}: se mejora esa solución.
+\end{enumerate}
+Para que cada iteración dé una solución distinta, la construcción no puede ser el voraz
+puro (que da siempre la misma). Las tres palabras del nombre describen cómo se construye
+(apuntes):
+\begin{itemize}
+  \item \textbf{Greedy}: en cada paso se incorpora un elemento que parece adecuado según una
+        medida voraz;
+  \item \textbf{Randomized}: no se elige siempre el mejor según esa medida, sino que se sortea
+        entre varios ``buenos'' candidatos; por ejemplo, entre los $k$ mejores;
+  \item \textbf{Adaptive}: los candidatos se reevalúan cada vez que se incorpora uno.
+\end{itemize}
+El conjunto de buenos candidatos entre los que se sortea se llama \textbf{lista restringida
+de candidatos} (LRC; en inglés RCL). Una descripción completa y de acceso libre del método y
+sus variantes es~\cite{resende}.
+
+\subsection{Esquema de los apuntes}
+
+\begin{apuntes}[Esquema de los apuntes: GRASP, algoritmo general]
+\begin{tabbing}
+\quad\=\kill
+Repetir \{\\
+\> Construir una solución $x\in S$ de forma greedy, aleatorizada y adaptativa\\
+\> Aplicar una búsqueda local a la solución $x$\\
+\> Actualizar la mejor solución conocida $x^\ast$\\
+\> Actualizar la información relativa a la memoria\\
+\} Mientras no se haya alcanzado el criterio de parada
+\end{tabbing}
+\end{apuntes}
+
+La cuarta línea (``memoria'') distingue este esquema del GRASP básico, en el que cada
+iteración es independiente de las anteriores. Los apuntes dedican una transparencia a esa
+\emph{memoria y guía inteligente de la construcción}: se toma como referencia un
+\textbf{conjunto élite} con un número reducido de soluciones buenas y diversas, y el criterio
+de construcción pasa a ser
+\[
+   \lambda\,[\text{greedy}] \;+\; (1-\lambda)\,[\text{memoria}] ,
+\]
+con $\lambda$ grande en las primeras iteraciones (aún no se sabe nada: manda el criterio
+voraz), intermedio y bajando después, y pequeño en las últimas (manda la memoria).
+
+\subsection{Adaptación al problema de cubrimiento}
+
+\paragraph{Fase constructiva.} Es la función \cod{completar} de la
+sección~\ref{sec:completar}, partiendo de la solución vacía, con el criterio del cociente
+$g_j/c_j$ y una LRC de tamaño \cod{lrc}. Es \emph{greedy} (cociente), \emph{randomized}
+(sorteo dentro de la LRC) y \emph{adaptive} (las ganancias $g_j$ se actualizan tras cada
+inserción).
+
+\begin{decision}[Decisión: LRC por cardinalidad]
+Hay dos formas de definir la LRC: por \emph{cardinalidad} (las $k$ mejores candidatas) o por
+\emph{valor} (todas las que estén a menos de un cierto porcentaje de la mejor). Se usa la
+primera, que es el ejemplo de los apuntes (``se elige aleatoriamente entre los $k$ mejores
+elementos''): el parámetro es un entero con un significado inmediato y la cantidad de azar es
+la misma en todos los pasos de la construcción.
+\end{decision}
+
+\paragraph{Memoria.} Se mantiene un conjunto élite con las \cod{elite} mejores soluciones
+\emph{distintas} encontradas. A partir de él se calcula, para cada columna,
+\[
+   \text{memoria}[j] \;=\; \text{fracción de soluciones élite que contienen la columna } j
+   \ \in[0,1].
+\]
+Una columna que aparece en todas las soluciones buenas tiene memoria 1; una que no aparece en
+ninguna, 0. La puntuación con la que se forma la LRC es
+\begin{equation}\label{eq:grasp}
+   \text{punt}(j) \;=\; \lambda\cdot\frac{g_j/c_j}{\max_k\, g_k/c_k}
+                 \;+\;(1-\lambda)\cdot\text{memoria}[j].
+\end{equation}
+
+\begin{decision}[Decisión: normalizar el término voraz]
+El cociente $g_j/c_j$ puede valer 0.3 o 30 según el momento de la construcción, mientras que
+la memoria está siempre entre 0 y 1. Si se sumaran tal cual, $\lambda$ no significaría nada.
+Dividiendo por el mejor cociente del momento, el término voraz también queda entre 0 y 1 y
+$\lambda$ es de verdad ``el peso del criterio voraz''.
+\end{decision}
+
+\begin{decision}[Decisión: $\lambda$ decrece linealmente con el tiempo]
+Siguiendo las tres fases que describen los apuntes, $\lambda$ empieza en $\lambda_0=1$ y baja
+en línea recta hasta $\lambda_f$ cuando se agota el tiempo:
+$\lambda(t)=\lambda_0+(\lambda_f-\lambda_0)\,t/t_{\max}$. Se fija $\lambda_0=1$ porque en la
+primera iteración el conjunto élite está vacío y solo puede guiar el criterio voraz. El
+único valor que queda por calibrar es $\lambda_f$; con $\lambda_f=1$ la memoria no se usa
+nunca y el algoritmo es el GRASP básico, lo que permite medir si la memoria aporta algo.
+\end{decision}
+
+\paragraph{Actualización del conjunto élite.} Tras cada iteración, la solución obtenida
+entra en el élite si no está ya (no se admiten repetidas: el élite debe ser diverso) y,
+cuando está lleno, solo si mejora a la peor, a la que sustituye. Es el compromiso ``calidad
+frente a diversidad'' que mencionan los apuntes.
+
+\paragraph{Fase de búsqueda local.} El VND de la sección~\ref{sec:vnd} con \cod{grent}
+entornos. Los apuntes advierten que hay que decidir ``dónde es más interesante realizar un
+mayor gasto computacional: construcción o mejora''. Con dos entornos las iteraciones son más
+baratas y se hacen más; con tres, cada solución queda mejor. La calibración decide.
+
+\subsection{Parámetros}
+
+\begin{center}
+\begin{tabular}{@{}lp{11.3cm}@{}}
+\toprule
+Nombre & Significado y efecto \\ \midrule
+\cod{lrc} & Tamaño de la LRC. Con 1 todas las construcciones serían iguales. Pequeño:
+            soluciones buenas pero parecidas. Grande: soluciones variadas pero peores. \\
+\cod{lamf} & Valor final $\lambda_f$ de $\lambda$. Con 1 no hay memoria (GRASP básico). Cuanto
+            menor, más pesa la memoria al final. \\
+\cod{elite} & Tamaño del conjunto élite. \\
+\cod{grent} & Número de entornos de la búsqueda local (2 o 3). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Recorrido por el código}
+
+Las dos fases y el cálculo de $\lambda$:
+
+\fragmento{grasp.c}{59}{73}
+
+Dentro de \cod{completar}, la fórmula~\eqref{eq:grasp} es una sola instrucción (la variable
+\cod{vmax} es el mejor cociente del momento):
+
+\fragmento{base.c}{527}{531}
+
+Y la actualización de la memoria, que solo se recalcula cuando el élite cambia:
+
+\fragmento{grasp.c}{93}{112}

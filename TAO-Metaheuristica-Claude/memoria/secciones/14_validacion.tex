@@ -1,0 +1,98 @@
+% ============================================================================
+\section{Validación}\label{sec:validacion}
+% ============================================================================
+
+Fijados los parámetros (tabla~\ref{tab:config}), cada metaheurística se ha ejecutado
+\emph{una sola vez} sobre las 24 instancias de \cod{Validacion\_datos/}, con las mismas 3
+semillas y el mismo límite de 5 segundos: \input{tablas/num_ejecuciones_val} ejecuciones.
+Ningún parámetro se ha modificado después. La pregunta que responde esta sección es la de la
+sección~\ref{sec:protocolo}: \emph{¿funcionan los parámetros elegidos igual de bien en
+instancias que no han intervenido en su elección?}
+
+\subsection{Calibración frente a validación}
+
+\input{tablas/validacion_resumen}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.86\textwidth]{figuras/validacion.pdf}
+\caption{Distribución del RPD de todas las ejecuciones de la configuración final en las
+instancias de calibración (18 ejecuciones por algoritmo) y de validación (72). La caja abarca
+del primer al tercer cuartil; la línea blanca es la mediana.}
+\label{fig:validacion}
+\end{figure}
+
+Lectura de la tabla~\ref{tab:validacion} y de la figura~\ref{fig:validacion}:
+\begin{itemize}
+  \item \textbf{No hay sobreajuste.} El RPD medio en validación es prácticamente igual al de
+        calibración en los cinco algoritmos: la mayor diferencia es de seis centésimas
+        (temple y VNS, y además a favor de la validación) y en GRASP y en la búsqueda tabú no
+        llega a dos. Son diferencias menores que el propio ruido entre semillas.
+  \item \textbf{La referencia confirma la lectura.} El constructivo y la búsqueda local no
+        tienen nada que sobreajustar y, sin embargo, salen unas 15 centésimas mejor en las
+        instancias de validación que en las de calibración: las 24 instancias de validación
+        son, de media, ligerísimamente más fáciles. Las metaheurísticas se mueven menos que
+        eso entre un conjunto y otro.
+  \item \textbf{El orden entre algoritmos se mantiene.} En ambos conjuntos: GRASP, VNS,
+        temple y tabú (empatados), genético, búsqueda local y constructivo. Lo único que
+        cambia es el orden interno de la pareja temple--tabú, que están a cuatro centésimas.
+  \item \textbf{La dispersión es parecida} en ambos conjuntos (figura~\ref{fig:validacion});
+        en validación los extremos son algo más amplios simplemente porque hay cuatro veces
+        más ejecuciones.
+\end{itemize}
+
+\begin{idea}[Conclusión de la validación]
+Los parámetros elegidos con 6 instancias funcionan igual en las otras 24. La calibración es
+válida para esta familia de instancias, y las cifras de validación (tabla~\ref{tab:validacion})
+son las que deben usarse en el informe como estimación de la calidad de cada algoritmo.
+\end{idea}
+
+\paragraph{Una salvedad sobre el tiempo.} La validación se ejecutó en una sesión de cálculo
+distinta de la calibración, en una máquina del mismo modelo que resultó en torno a un 10\,\%
+más rápida (más iteraciones en los mismos 5 segundos). El efecto sobre el RPD es muy pequeño
+porque al final de la ejecución todos los algoritmos mejoran ya muy despacio
+(figura~\ref{fig:convergencia}), pero es una razón más para que, al repetir los experimentos,
+calibración y validación se hagan seguidas en el mismo ordenador.
+
+\subsection{Resultados por instancia}
+
+\input{tablas/validacion_instancias}
+
+La tabla~\ref{tab:validacion-inst} muestra que las conclusiones no dependen de unas pocas
+instancias:
+\begin{itemize}
+  \item En las 24 instancias el mejor algoritmo es GRASP (14 veces) o la VNS (10 veces). La
+        diferencia media entre ambos, siete centésimas a favor de GRASP, no es
+        estadísticamente significativa (prueba de Wilcoxon de rangos con signo sobre las 24
+        instancias, $p=0.32$): \textbf{GRASP y VNS están empatados}.
+  \item La VNS es mejor que el temple en 22 de las 24 instancias y mejor que la búsqueda tabú
+        en las 24; la diferencia (medio punto) sí es significativa ($p<0.001$).
+  \item Temple y tabú están empatados entre sí ($p=0.53$) y ambos son algo mejores que el
+        genético (dos décimas; $p<0.03$).
+  \item GRASP, VNS y tabú mejoran a la búsqueda local en las 24 instancias y en sus 72
+        ejecuciones; el temple, en 66 de 72; el genético, en 58 de 72.
+\end{itemize}
+
+\subsection{Evolución con el tiempo}
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.86\textwidth]{figuras/convergencia.pdf}
+\caption{Evolución del RPD de la mejor solución durante una ejecución de 5 segundos (instancia
+SCP01, semilla 1, configuraciones finales). El eje de tiempos es logarítmico.}
+\label{fig:convergencia}
+\end{figure}
+
+La figura~\ref{fig:convergencia} ilustra el comportamiento típico de cada algoritmo (es una
+sola ejecución, no una media):
+\begin{itemize}
+  \item La \textbf{búsqueda tabú} y la \textbf{VNS} mejoran muy deprisa al principio: en una
+        décima de segundo ya están en torno al 5\,\%. La tabú se estanca hacia la mitad de
+        la ejecución; la VNS sigue encontrando mejoras pequeñas hasta el final.
+  \item El \textbf{temple} no mejora nada durante el primer segundo y medio (fase caliente:
+        acepta casi todo y la mejor solución sigue siendo la inicial) y después baja de
+        golpe cuando la temperatura llega a la zona útil. Es el comportamiento esperado y
+        explica por qué es tan sensible a la velocidad de enfriamiento.
+  \item \textbf{GRASP} avanza a escalones cada vez más rentables: cuanto más pesa la memoria,
+        mejores son las soluciones que construye. Sigue mejorando al final.
+  \item El \textbf{genético} es el más lento en arrancar (tiene que construir la población),
+        mejora de forma gradual durante toda la ejecución y termina por encima de los demás.
+\end{itemize}

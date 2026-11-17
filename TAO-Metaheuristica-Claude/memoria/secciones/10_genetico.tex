@@ -1,0 +1,190 @@
+% ============================================================================
+\section{Algoritmo Genético}\label{sec:genetico}
+% ============================================================================
+
+\subsection{Idea}
+
+Los algoritmos genéticos (Holland, 1975) imitan la evolución de las especies. En lugar de una
+sola solución que se va modificando, se mantiene una \textbf{población} de soluciones que
+evoluciona generación tras generación. El vocabulario es el de la biología:
+
+\begin{center}
+\begin{tabular}{@{}lp{11cm}@{}}
+\toprule
+Término & Significado en optimización \\ \midrule
+Individuo & Una solución factible. \\
+Gen & Cada una de las componentes con que se codifica la solución. \\
+Población & El conjunto de soluciones que se mantiene en cada momento. \\
+Aptitud (\emph{fitness}) & Medida de la calidad de un individuo; se deriva del coste. \\
+Cruce & Operador que combina dos individuos (padres) para dar otros nuevos (hijos) que
+        heredan características de ambos. \\
+Mutación & Operador que altera al azar alguna característica de un individuo. \\
+Selección & Operador que decide qué individuos sobreviven. \\
+Generación & Una iteración del algoritmo. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+La apuesta del método es que \emph{combinar} soluciones buenas da, con cierta frecuencia,
+soluciones aún mejores: si un padre ha resuelto bien una parte del problema y el otro otra
+parte, un hijo puede heredar las dos. La mutación introduce material nuevo que el cruce por
+sí solo nunca generaría, y la selección empuja a la población hacia las soluciones de menor
+coste. Una introducción general gratuita es~\cite[cap.~3]{luke}.
+
+\subsection{Esquema de los apuntes}
+
+\begin{apuntes}[Esquema de los apuntes: Algoritmos Genéticos, algoritmo general]
+\begin{tabbing}
+\quad\=\kill
+Construir una población inicial de soluciones\\
+Guardar la mejor solución $x^\ast$\\
+Repetir \{\\
+\> Seleccionar progenitores y aplicar el OPERADOR DE CRUCE\\
+\> Aplicar el OPERADOR DE MUTACIÓN sobre las nuevas soluciones\\
+\> Actualizar la mejor solución $x^\ast$ si se ha obtenido alguna mejor\\
+\> Aplicar el OPERADOR DE SELECCIÓN\\
+\} Mientras no se haya alcanzado el criterio de parada
+\end{tabbing}
+\end{apuntes}
+
+Los apuntes precisan además cómo entienden cada operador: la población inicial se genera
+``por algún algoritmo constructivo''; al aplicar la selección ``generalmente se considera que
+mueren la mitad de los individuos, siendo la probabilidad de supervivencia de un individuo
+proporcional a su función de aptitud''; los individuos ``se emparejan y dan lugar a varios
+hijos''; y la mutación ``se aplica con una probabilidad muy baja''. El diseño siguiente
+respeta esas indicaciones.
+
+\subsection{Adaptación al problema de cubrimiento}
+
+\paragraph{Representación.} Los apuntes subrayan que representar bien las soluciones es la
+decisión principal.
+
+\begin{decision}[Decisión: representación binaria, guardada como conjunto]
+Un individuo es el vector binario $x$ del modelo: un gen por columna, que vale 1 si la
+columna está elegida. Es la representación natural del problema y hace que cruzar y mutar
+sean operaciones evidentes. Como de los 10\,000 genes solo unos 150 valen 1, en memoria no
+se guarda el vector entero sino el conjunto de columnas elegidas, con la misma estructura
+\cod{Solucion} que usan los demás algoritmos.
+\end{decision}
+
+\paragraph{Aptitud.} Se minimiza el coste, así que es más apto quien menos cuesta. Para un
+individuo de coste $z$ en una población cuyos costes van de $z_{\min}$ a $z_{\max}$:
+\[
+   \text{aptitud} \;=\; (z_{\max}-z) \;+\; 0.05\,(z_{\max}-z_{\min}) \;+\; 10^{-6}.
+\]
+El primer término es la ventaja sobre el peor; el segundo es un pequeño margen para que el
+peor individuo no tenga aptitud cero (y conserve alguna posibilidad de sobrevivir). Responde
+a la observación de los apuntes~\cite{yanez}: ``en el caso de problemas de minimización, hay
+que modificar la función de adaptación para que sean más probables los de menor valor''.
+
+\paragraph{Población inicial.} El primer individuo es la solución del voraz puro; los demás
+se construyen con el voraz aleatorizado (LRC de tamaño 5) para que sean distintos entre sí.
+Responde a la indicación de los apuntes sobre ``cómo construir conjuntos de soluciones
+diversas'': si todos los individuos fueran iguales, el cruce no produciría nada nuevo.
+
+\paragraph{Progenitores.} Se baraja la población y se empareja de dos en dos. Cada pareja
+tiene dos hijos, de modo que en cada generación nacen tantos hijos como individuos hay.
+
+\begin{decision}[Decisión: todos se reproducen; la presión se ejerce al sobrevivir]
+No se favorece a los mejores a la hora de elegir progenitores porque la presión selectiva ya
+se aplica en el operador de selección (que, según los apuntes, es el que elimina individuos).
+Aplicarla dos veces haría que la población se volviera uniforme demasiado pronto
+(\emph{convergencia prematura}).
+\end{decision}
+
+\paragraph{Cruce.} Los genes en los que ambos padres coinciden se heredan tal cual: si los
+dos tienen la columna, los dos hijos la tienen; si ninguno la tiene, ninguno. Los genes en
+que difieren se reparten, y los dos hijos son complementarios (lo que no hereda uno de un
+padre lo hereda el otro). Hay tres formas de repartir (parámetro \cod{cruce}):
+\begin{enumerate}
+  \item \textbf{Un punto}: se sortea una columna de corte; el primer hijo toma del padre los
+        genes anteriores al corte y de la madre los posteriores, y el segundo al revés. Es el
+        cruce del ejemplo de los apuntes~\cite{yanez} (``uno con los 3 primeros bits del padre
+        y los 2 últimos de la madre y el otro con los 3 primeros bits de la madre y los otros
+        2 del padre'').
+  \item \textbf{Uniforme}: cada gen se toma de uno u otro progenitor a cara o cruz.
+  \item \textbf{Ponderado por coste (``fusión'')}: como el uniforme, pero el gen se toma del
+        progenitor \emph{más barato} con mayor probabilidad: si los costes son $z_a$ y
+        $z_b$, se hereda de $a$ con probabilidad $z_b/(z_a+z_b)$.
+\end{enumerate}
+La tercera variante se inspira en el operador de fusión que Beasley y Chu propusieron para
+este mismo problema, mencionado en~\cite{tayebi}\footnote{El artículo original (J.~E.~Beasley
+y P.~C.~Chu, \emph{A genetic algorithm for the set covering problem}, European Journal of
+Operational Research 94, 1996) es de pago y no se ha utilizado; aquí solo se toma la idea
+general de ponderar la herencia por la aptitud, que se describe en fuentes de acceso libre.}.
+
+\paragraph{Reparación.} Un hijo puede dejar filas sin cubrir.
+
+\begin{decision}[Decisión: reparar a los hijos]
+Tras el cruce y la mutación, cada hijo se completa con el voraz (\cod{completar}) y se le
+quitan las columnas redundantes. Así todos los individuos son siempre soluciones factibles y
+sin columnas sobrantes, como en los demás algoritmos. La alternativa (admitir individuos
+infactibles y penalizarlos en la aptitud) obligaría a calibrar la penalización y llenaría la
+población de individuos inútiles.
+\end{decision}
+
+\paragraph{Mutación.} Con probabilidad \cod{pmut}, un hijo sufre una mutación que altera
+\cod{nmut} genes.
+
+\begin{decision}[Decisión: mutación equilibrada entre encender y apagar]
+Si el gen a alterar se eligiera al azar entre los 10\,000, casi siempre sería un 0 (solo el
+1.5\,\% valen 1): la mutación casi siempre añadiría una columna, que además sería redundante
+y la reparación eliminaría enseguida. No cambiaría nada. Por eso cada alteración es, con
+probabilidad $1/2$, apagar un gen encendido (quitar una columna de la solución, lo que
+obliga a la reparación a buscar otra forma de cubrir sus filas) y, con probabilidad $1/2$,
+encender un gen apagado al azar.
+\end{decision}
+
+\paragraph{Mejora local (opcional).} Con \cod{bl} $>0$ se aplica a cada hijo el VND con
+\cod{bl} entornos. Un genético con búsqueda local se suele llamar \emph{algoritmo memético}
+(figura como tal en la clasificación de los apuntes). Es opcional para poder medir en la
+calibración cuánto aporta.
+
+\paragraph{Selección.} Al final de cada generación hay $2\cdot\cod{pob}$ individuos (padres e
+hijos) y sobrevive la mitad, como indican los apuntes:
+\begin{itemize}
+  \item el mejor sobrevive siempre (\textbf{elitismo}): la mejor solución no se pierde nunca;
+  \item el resto de plazas se sortean una a una con probabilidad proporcional a la aptitud
+        (método de la \textbf{ruleta}). A diferencia del ejemplo de los apuntes, que permite
+        la repetición, aquí un individuo no puede ser elegido dos veces: con poblaciones
+        pequeñas, permitir repeticiones llena enseguida la población de copias del mejor;
+  \item los individuos \emph{repetidos} (copias exactas de otro) reciben aptitud cero, para
+        que la población no se llene de clones.
+\end{itemize}
+
+\subsection{Parámetros}
+
+\begin{center}
+\begin{tabular}{@{}lp{11.3cm}@{}}
+\toprule
+Nombre & Significado y efecto \\ \midrule
+\cod{pob} & Tamaño de la población. Grande: más diversidad, pero menos generaciones en el
+            mismo tiempo. \\
+\cod{cruce} & Tipo de cruce: 1 = un punto, 2 = uniforme, 3 = ponderado por coste. \\
+\cod{pmut} & Probabilidad de que un hijo mute. Con 0 no hay mutación. \\
+\cod{nmut} & Número de genes que altera una mutación. \\
+\cod{bl} & Entornos de la mejora local de los hijos (0 = sin mejora local). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Recorrido por el código}
+
+El cruce recorre los genes que valen 1 en cada padre (los que valen 0 en ambos no hay que
+tocarlos). La variable \cod{de\_a} decide de quién hereda el primer hijo:
+
+\fragmento{genetico.c}{64}{85}
+
+La mutación:
+
+\fragmento{genetico.c}{95}{107}
+
+El cuerpo de una generación (cruce, mutación, reparación, mejora local y actualización de
+$x^\ast$) sigue el orden del esquema:
+
+\fragmento{genetico.c}{165}{183}
+
+Y la selección por ruleta con elitismo. El primer superviviente ($t=0$) es el mejor; los
+demás se sortean entre los que aún no han sido elegidos:
+
+\fragmento{genetico.c}{204}{225}

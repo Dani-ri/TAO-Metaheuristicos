@@ -1,0 +1,140 @@
+% ============================================================================
+\section{Cómo compilar, ejecutar y repetir los experimentos}\label{sec:uso}
+% ============================================================================
+
+\subsection{Compilar}
+
+Desde una terminal, dentro de la carpeta \cod{codigo/}:
+\begin{verbatim}
+   bash compilar.sh
+\end{verbatim}
+o, lo que es lo mismo, escribiendo directamente la orden que contiene ese guion:
+\begin{verbatim}
+   gcc -O2 -std=c99 -Wall -o scp *.c -lm
+\end{verbatim}
+Esto crea el ejecutable \cod{scp}. El significado de las opciones es: \cod{-O2} pide al
+compilador que optimice el código (el programa va varias veces más rápido); \cod{-std=c99}
+fija la versión del lenguaje; \cod{-Wall} activa los avisos; \cod{-lm} enlaza la biblioteca
+matemática (por las funciones \cod{exp} y \cod{log} del temple). El código no usa nada
+específico de un sistema operativo: compila igual en macOS, Linux y Windows.
+
+\subsection{Ejecutar}
+
+\begin{verbatim}
+   ./scp FICHERO ALGORITMO [parametro=valor ...]
+\end{verbatim}
+donde \cod{ALGORITMO} es \cod{voraz}, \cod{local}, \cod{temple}, \cod{tabu}, \cod{grasp},
+\cod{genetico} o \cod{vns}. Por ejemplo:
+\begin{verbatim}
+   ./scp ../datos/SCP01.dat voraz
+   ./scp ../datos/SCP01.dat local
+   ./scp ../datos/SCP01.dat vns
+   ./scp ../datos/SCP01.dat temple tiempo=10 semilla=7
+   ./scp ../datos/SCP01.dat grasp lrc=5 ver=1
+\end{verbatim}
+Los parámetros que no se indican toman su valor por defecto, que es el valor calibrado
+(tabla~\ref{tab:config}). La tabla~\ref{tab:parametros} lista todos los nombres. Si el
+programa se ejecuta sin argumentos (por ejemplo, con el botón de ejecutar de un editor),
+pregunta el fichero y el algoritmo por teclado.
+
+\begin{table}[H]
+\centering
+\caption{Parámetros que admite el programa en la línea de órdenes.}
+\label{tab:parametros}
+\small\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{@{}llp{7.6cm}@{}}
+\toprule
+Ámbito & Parámetro & Significado \\ \midrule
+General & \cod{tiempo} & límite de tiempo de CPU en segundos (5 por defecto) \\
+        & \cod{semilla} & semilla de los números aleatorios (1 por defecto) \\
+        & \cod{ver} & con \cod{ver=1} escribe las columnas de la solución \\
+        & \cod{traza} & con \cod{traza=1} escribe cada mejora y el instante en que se produce \\
+Voraz y local & \cod{criterio} & criterio voraz: 1, 2 o 3 \\
+        & \cod{entornos} & $j_A$ de la búsqueda local: 1, 2 o 3 \\
+Temple & \cod{k}, \cod{lrc}, \cod{p0}, \cod{alfa}, \cod{L} & sección~\ref{sec:temple} \\
+Tabú & \cod{tent}, \cod{tsal}, \cod{beta}, \cod{reinicio} & sección~\ref{sec:tabu} \\
+GRASP & \cod{lrc}, \cod{lam0}, \cod{lamf}, \cod{elite}, \cod{grent} & sección~\ref{sec:grasp} \\
+Genético & \cod{pob}, \cod{cruce}, \cod{pmut}, \cod{nmut}, \cod{bl} & sección~\ref{sec:genetico} \\
+VNS & \cod{jb}, \cod{ja}, \cod{lrc} & sección~\ref{sec:vns} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La salida tiene este aspecto:
+\begin{verbatim}
+   Instancia : ../datos/SCP01.dat  (m = 500 filas, n = 10000 columnas)
+   Algoritmo : local   (semilla 1, limite 5.0 s)
+   Coste     : 389.4609
+   Columnas  : 144
+   Factible  : SI
+   RESULTADO;../datos/SCP01.dat;local;1;389.4609;144;0.028;0.028;0;1
+\end{verbatim}
+La última línea repite la información en un formato fácil de leer por otro programa (lo usan
+los guiones de experimentos): fichero, algoritmo, semilla, coste, número de columnas,
+segundos hasta la mejor solución, segundos totales, iteraciones y un 1 si la solución ha
+superado la comprobación de factibilidad.
+
+\subsection{Repetir los experimentos en otro ordenador}
+
+La carpeta \cod{experimentos/} contiene todo lo necesario para repetir la calibración y la
+validación. La forma más cómoda es un único guion que lo hace todo por orden:
+\begin{verbatim}
+   cd experimentos
+   bash repetir_todo.sh
+\end{verbatim}
+Este guion compila el programa, guarda los resultados anteriores en una carpeta aparte (no
+borra nada), ejecuta todos los experimentos, genera las
+tablas y figuras y compila la memoria. Equivale a lanzar a mano, uno tras otro:
+\begin{verbatim}
+   python3 basicos.py          (constructivo y busqueda local; unos segundos)
+   python3 calibrar.py         (calibracion: 1008 ejecuciones de 5 s)
+   python3 validar.py          (validacion: 360 ejecuciones de 5 s)
+   python3 trazas.py           (curvas de convergencia; medio minuto)
+   python3 estructura.py       (comparacion con la solucion optima; 2-3 minutos)
+   python3 generar_tablas.py   (tablas y figuras de la memoria)
+\end{verbatim}
+\begin{itemize}
+  \item \textbf{Duración.} La calibración son 84 minutos de cálculo y la validación 30, que se
+        reparten entre las ejecuciones que se lancen a la vez: con 4 a la vez, unos 20 y 8
+        minutos. El número de ejecuciones simultáneas se fija con la variable de entorno
+        \cod{PROCESOS} (por ejemplo \cod{PROCESOS=4 python3 calibrar.py}); por defecto son 2,
+        y \cod{repetir\_todo.sh} lo ajusta al número de núcleos del ordenador. No conviene
+        poner más que núcleos haya.
+  \item \textbf{Segunda vuelta.} \cod{VUELTAS=2 python3 calibrar.py} añade la segunda vuelta de
+        la sección~\ref{sec:ofat} (aproximadamente el doble de tiempo).
+  \item \textbf{Reanudar.} \cod{calibrar.py} y \cod{validar.py} guardan cada ejecución en
+        cuanto termina. Si se interrumpen, al volver a lanzarlos continúan donde lo dejaron.
+        Por la misma razón, si ya existe un fichero de resultados \emph{no} repiten lo que
+        contiene: para recalcular desde cero hay que apartar antes
+        \cod{resultados\_calibracion.csv} y \cod{resultados\_validacion.csv} (es lo que hace
+        \cod{repetir\_todo.sh}).
+  \item \textbf{Requisitos.} Python~3; \cod{generar\_tablas.py} usa además \cod{matplotlib}
+        para las figuras (si no está instalado, genera solo las tablas).
+  \item \textbf{Las cifras cambiarán algo.} En 5 segundos un procesador más rápido hace más
+        iteraciones. Lo importante es que calibración y validación se ejecuten en el mismo
+        ordenador. Si la nueva calibración elige otros valores (fichero
+        \cod{decisiones.json}), conviene copiarlos a los valores por defecto del programa
+        (función \cod{parametros\_por\_defecto} de \cod{main.c}) y revisar los comentarios de
+        la sección~\ref{sec:calibracion}.
+  \item \cod{calcular\_optimos.py} recalcula los óptimos (necesita \cod{numpy} y \cod{scipy}).
+        No hace falta ejecutarlo: los valores están en \cod{optimos.csv}.
+\end{itemize}
+
+Ficheros de resultados que acompañan a la memoria:
+\begin{center}
+\small
+\begin{tabular}{@{}lp{10.2cm}@{}}
+\toprule
+Fichero & Contenido \\ \midrule
+\cod{optimos.csv} & valor óptimo de las 30 instancias \\
+\cod{resultados\_basicos.csv} & constructivo y búsqueda local en las 30 instancias \\
+\cod{resultados\_calibracion.csv} & todas las ejecuciones de la calibración, una por línea \\
+\cod{decisiones.json} & etapas de la calibración, valor elegido en cada una y configuración final \\
+\cod{resultados\_validacion.csv} & todas las ejecuciones de la validación \\
+\cod{resultados\_trazas.csv} & evolución de la mejor solución con el tiempo \\
+\cod{resultados\_estructura.csv} & columnas de cada solución compartidas con la óptima \\
+\cod{optimos\_soluciones.csv} & columnas de la solución óptima de cada instancia \\
+\cod{calibracion.log}, \cod{validacion.log} & lo que escribieron los guiones por pantalla \\
+\bottomrule
+\end{tabular}
+\end{center}

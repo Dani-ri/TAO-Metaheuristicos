@@ -1,0 +1,148 @@
+% ============================================================================
+%  memoria.tex -- Documento principal
+%  Compilar DESDE LA CARPETA memoria/ con:   pdflatex memoria   (dos veces)
+%  Necesita que existan, junto a esta carpeta, las carpetas ../codigo (para
+%  los listados) y las subcarpetas tablas/ y figuras/ (generadas por
+%  ../experimentos/generar_tablas.py).
+% ============================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2.3cm]{geometry}
+
+% --- Idioma: si esta instalado el paquete de espanol de babel se usa; si no,
+% --- se traducen a mano los rotulos y el documento compila igualmente.
+\IfFileExists{spanish.ldf}{%
+  \usepackage[spanish,es-tabla,es-nodecimaldot,es-noshorthands]{babel}%
+}{%
+  \AtBeginDocument{%
+    \renewcommand{\contentsname}{Índice}%
+    \renewcommand{\figurename}{Figura}%
+    \renewcommand{\tablename}{Tabla}%
+    \renewcommand{\refname}{Referencias}%
+    \renewcommand{\abstractname}{Resumen}%
+    \renewcommand{\appendixname}{Apéndice}%
+  }%
+  \hyphenpenalty=10000 \exhyphenpenalty=10000 \emergencystretch=3em
+}
+
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{caption}
+\usepackage{tikz}
+\usepackage[most]{tcolorbox}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[hidelinks]{hyperref}
+
+\captionsetup{font=small,labelfont=bf}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parskip}{4pt plus 1pt}
+
+% --- Pseudocodigo en espanol -------------------------------------------------
+\floatname{algorithm}{Algoritmo}
+\algrenewcommand\algorithmicwhile{\textbf{mientras}}
+\algrenewcommand\algorithmicdo{\textbf{hacer}}
+\algrenewcommand\algorithmicend{\textbf{fin}}
+\algrenewcommand\algorithmicif{\textbf{si}}
+\algrenewcommand\algorithmicthen{\textbf{entonces}}
+\algrenewcommand\algorithmicelse{\textbf{si no}}
+\algrenewcommand\algorithmicfor{\textbf{para}}
+\algrenewcommand\algorithmicforall{\textbf{para cada}}
+\algrenewcommand\algorithmicrepeat{\textbf{repetir}}
+\algrenewcommand\algorithmicuntil{\textbf{hasta que}}
+\algrenewcommand\algorithmicreturn{\textbf{devolver}}
+\algrenewcommand\algorithmicrequire{\textbf{Entrada:}}
+\algrenewcommand\algorithmicensure{\textbf{Salida:}}
+\algrenewcommand{\algorithmiccomment}[1]{\hfill{\footnotesize\color{black!60}$\triangleright$ #1}}
+
+% --- Listados de codigo C ----------------------------------------------------
+\definecolor{fondo}{gray}{0.965}
+\definecolor{coment}{rgb}{0.15,0.42,0.22}
+\definecolor{clave}{rgb}{0.10,0.20,0.60}
+\lstset{
+  language=C,
+  basicstyle=\ttfamily\fontsize{7.3}{8.7}\selectfont,
+  keywordstyle=\color{clave}\bfseries,
+  commentstyle=\color{coment},
+  stringstyle=\color{black!70},
+  numbers=left, numberstyle=\tiny\color{black!45}, numbersep=5pt,
+  backgroundcolor=\color{fondo},
+  frame=single, rulecolor=\color{black!20},
+  columns=fullflexible, keepspaces=true,
+  showstringspaces=false, breaklines=true, tabsize=4,
+  xleftmargin=1.6em, framexleftmargin=1.4em,
+  aboveskip=6pt, belowskip=6pt
+}
+% \fragmento{fichero}{primera}{ultima}: muestra unas lineas concretas del codigo
+\newcommand{\fragmento}[3]{\lstinputlisting[firstline=#2,lastline=#3,firstnumber=#2,
+  title={\footnotesize\ttfamily codigo/\detokenize{#1}, líneas #2--#3}]{../codigo/#1}}
+
+% --- Cajas -------------------------------------------------------------------
+\newtcolorbox{idea}[1][Idea clave]{breakable,colback=blue!3,colframe=blue!45!black,
+  fonttitle=\bfseries\small,title={#1},left=5pt,right=5pt,top=3pt,bottom=3pt,boxrule=0.5pt}
+\newtcolorbox{decision}[1][Decisión de diseño]{breakable,colback=orange!5,colframe=orange!60!black,
+  fonttitle=\bfseries\small,title={#1},left=5pt,right=5pt,top=3pt,bottom=3pt,boxrule=0.5pt}
+\newtcolorbox{apuntes}[1][Esquema de los apuntes]{breakable,colback=black!3,colframe=black!55,
+  fonttitle=\bfseries\small,title={#1},left=5pt,right=5pt,top=3pt,bottom=3pt,boxrule=0.5pt}
+
+% --- Abreviaturas ------------------------------------------------------------
+\newcommand{\cod}[1]{\texttt{#1}}
+\newcommand{\rpd}{\mathrm{RPD}}
+\newcommand{\D}[1]{\Delta_{#1}}
+\newcommand{\Om}[1]{\Omega_{#1}}
+
+\title{\textbf{Metaheurísticas para el Problema de Cubrimiento}\\[4pt]
+\large Memoria técnica: teoría, algoritmos, código en C\\ y calibración de parámetros}
+\author{Técnicas Avanzadas de Optimización\\[2pt] {\normalsize [Nombre y apellidos]}}
+\date{Noviembre de 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent Este documento explica, partiendo de cero, los algoritmos que pide la práctica para
+el Problema de Cubrimiento de Conjuntos: un algoritmo constructivo, una búsqueda local y
+cinco metaheurísticas (Temple Simulado, Búsqueda Tabú, GRASP, Algoritmo Genético y Búsqueda
+en Entorno Variable). Para cada uno se da la idea, el esquema de los apuntes de la
+asignatura, cómo se ha adaptado al problema, por qué se ha tomado cada decisión y cómo está
+escrito en C. Después se describe el protocolo experimental (qué instancias se usan para
+calibrar y cuáles para validar, y por qué), la calibración de todos los parámetros y la
+validación de las configuraciones elegidas. Todas las cifras del documento se generan
+automáticamente a partir de los ficheros de resultados que acompañan al código.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\input{secciones/01_introduccion}
+\input{secciones/02_problema}
+\input{secciones/03_conceptos}
+\input{secciones/04_programa}
+\input{secciones/05_constructivo}
+\input{secciones/06_busqueda_local}
+\input{secciones/07_temple}
+\input{secciones/08_tabu}
+\input{secciones/09_grasp}
+\input{secciones/10_genetico}
+\input{secciones/11_vns}
+\input{secciones/12_metodologia}
+\input{secciones/13_calibracion}
+\input{secciones/14_validacion}
+\input{secciones/15_uso}
+\input{secciones/16_conclusiones}
+\input{secciones/17_bibliografia}
+
+\appendix
+\input{secciones/A_codigo}
+
+\end{document}

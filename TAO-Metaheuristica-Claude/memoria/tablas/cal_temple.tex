@@ -1,0 +1,16 @@
+\begin{table}[H]
+\centering
+\caption{Calibración de Temple Simulado. Cada fila es una etapa: RPD medio (\%) sobre las 18 ejecuciones (6 instancias $\times$ 3 semillas) de cada valor probado, con los demás parámetros fijos. En negrita, el mejor.}
+\label{tab:cal-temple}
+\small
+\begin{tabular}{@{}cl>{\raggedright\arraybackslash}p{10.4cm}c@{}}
+\toprule
+Etapa & Parámetro & Valor probado $\rightarrow$ RPD medio & Elegido \\ \midrule
+1 & \texttt{k} & 1\,$\rightarrow$\,6.451;\quad 2\,$\rightarrow$\,\textbf{4.597};\quad 3\,$\rightarrow$\,4.748;\quad 5\,$\rightarrow$\,5.611 & 2 \\
+2 & \texttt{lrc} & 1\,$\rightarrow$\,4.766;\quad 2\,$\rightarrow$\,\textbf{4.597};\quad 3\,$\rightarrow$\,4.598;\quad 5\,$\rightarrow$\,4.605 & 2 \\
+3 & \texttt{p0} & 0.02\,$\rightarrow$\,4.477;\quad 0.1\,$\rightarrow$\,\textbf{4.477};\quad 0.3\,$\rightarrow$\,4.496;\quad 0.5\,$\rightarrow$\,4.597 & 0.1 \\
+4 & \texttt{alfa} & 0.9\,$\rightarrow$\,4.559;\quad 0.95\,$\rightarrow$\,4.477;\quad 0.99\,$\rightarrow$\,\textbf{4.127} & 0.99 \\
+5 & \texttt{L} & 200\,$\rightarrow$\,4.935;\quad 1000\,$\rightarrow$\,\textbf{4.127};\quad 5000\,$\rightarrow$\,6.557 & 1000 \\
+\bottomrule
+\end{tabular}
+\end{table}

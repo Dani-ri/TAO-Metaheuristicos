@@ -1,0 +1,150 @@
+% ============================================================================
+\section{Algoritmo constructivo}\label{sec:constructivo}
+% ============================================================================
+
+\subsection{Idea}
+
+Un algoritmo constructivo parte de la solución vacía y añade columnas una a una hasta que
+todas las filas están cubiertas. Si en cada paso se toma la columna que \emph{en ese momento}
+parece mejor, sin volver nunca atrás, el algoritmo se llama \textbf{voraz} (en inglés
+\emph{greedy}). Los apuntes lo ilustran con el ``vecino más próximo'' del problema del
+viajante; aquí la pregunta es qué significa ``la columna que parece mejor''.
+
+\subsection{Tres criterios posibles}
+
+Sea $g_j$ el número de filas \emph{todavía sin cubrir} que cubriría la columna $j$ (su
+\emph{ganancia}). Hay tres criterios naturales:
+\begin{center}
+\begin{tabular}{@{}cll@{}}
+\toprule
+Criterio & Se elige la columna con\ldots & Inconveniente \\ \midrule
+1 & menor coste $c_j$ & ignora cuánto cubre \\
+2 & mayor ganancia $g_j$ & ignora cuánto cuesta \\
+3 & mayor cociente $g_j/c_j$ & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+El criterio 3 elige la columna que cubre más filas nuevas \emph{por unidad de coste}; dicho
+de otro modo, la que cubre cada fila nueva al menor precio. Es el voraz clásico del
+cubrimiento (Chvátal, 1979) y tiene una garantía teórica: su solución nunca cuesta más de
+$H_m = 1+\tfrac12+\dots+\tfrac1m \approx \ln m$ veces el óptimo~\cite[sec.~2.3]{kordalewski}.
+En el vocabulario de los apuntes es, por tanto, un \emph{algoritmo aproximado}. En la
+práctica queda muchísimo más cerca del óptimo que esa cota.
+
+Un detalle esencial es que el criterio es \textbf{adaptativo}: $g_j$ cambia después de cada
+inserción, porque las filas que se acaban de cubrir dejan de contar para las demás columnas.
+
+\begin{algorithm}[H]
+\caption{Constructivo voraz (criterio del cociente)}\label{alg:voraz}
+\begin{algorithmic}[1]
+\State $S\gets\emptyset$
+\While{queda alguna fila sin cubrir}
+  \State para cada columna $j\notin S$: $g_j\gets$ n.º de filas sin cubrir que cubre $j$
+  \State $j^\ast\gets$ columna con $g_j>0$ que maximiza $g_j/c_j$
+  \State $S\gets S\cup\{j^\ast\}$
+\EndWhile
+\State eliminar de $S$ las columnas redundantes, la más cara primero
+\State \Return $S$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{El paso final: quitar redundantes}
+
+Una columna elegida al principio puede volverse innecesaria más tarde, cuando otras columnas
+han cubierto todas sus filas. Por eso, al terminar, se eliminan las redundantes.
+
+\begin{decision}[Decisión: quitar primero la redundante más cara]
+Si hay varias redundantes no siempre se pueden quitar todas: dos columnas pueden ser
+redundantes por separado y dejar de serlo en cuanto se quita la otra (si comparten una fila
+que solo cubren ellas dos). Hay que decidir un orden. Se quita primero la más cara porque es
+la que más ahorra, se recalcula, y se repite. Es, a su vez, un criterio voraz.
+\end{decision}
+
+\subsection{El algoritmo, a mano, sobre el ejemplo}
+
+Con los datos de la sección~\ref{sec:ejemplo} ($c=(2,5,4,3,1)$) y el criterio 3:
+
+\begin{center}
+\small
+\begin{tabular}{@{}clcccccl@{}}
+\toprule
+Paso & Filas sin cubrir & \multicolumn{5}{c}{Cociente $g_j/c_j$ de las columnas 1 a 5} & Se elige \\ \midrule
+1 & 1, 2, 3 & $1/2=0.50$ & $2/5=0.40$ & $1/4=0.25$ & $2/3=0.67$ & $1/1=\mathbf{1.00}$ & columna 5 \\
+2 & 1, 3 & $1/2=\mathbf{0.50}$ & $1/5=0.20$ & $1/4=0.25$ & $1/3=0.33$ & --- & columna 1 \\
+3 & 3 & --- & $1/5=0.20$ & $1/4=\mathbf{0.25}$ & --- & --- & columna 3 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Resultado: $S=\{5,1,3\}$, coste $1+2+4=7$, que es el óptimo. Nótese cómo cambian las
+ganancias: en el paso 1 la columna 4 cubría dos filas nuevas; en el paso 2 solo una, porque
+la fila 2 ya la había cubierto la columna 5. Con el criterio 2 (mayor ganancia) el mismo
+algoritmo elige las columnas 4 y 2 y obtiene coste 8. Se puede comprobar con el programa:
+\begin{verbatim}
+   ./scp ejemplo.dat voraz criterio=3 ver=1
+   ./scp ejemplo.dat voraz criterio=2 ver=1
+\end{verbatim}
+
+\subsection{Implementación: la función \cod{completar}}\label{sec:completar}
+
+El constructivo es tan corto que cabe en tres líneas, porque todo el trabajo lo hace la
+función común \cod{completar}:
+
+\fragmento{constructivo.c}{24}{30}
+
+\cod{completar(I, S, criterio, lrc, memoria, lambda)} cubre las filas que $S$ tenga sin
+cubrir. Sus argumentos permiten usar la misma función en todos los algoritmos:
+\begin{itemize}
+  \item \cod{criterio}: 1, 2 o 3 (los de la tabla anterior);
+  \item \cod{lrc}: tamaño de la \emph{lista restringida de candidatos}. En cada paso no se
+        toma obligatoriamente la mejor columna, sino una al azar entre las \cod{lrc} mejores.
+        Con \cod{lrc = 1} es el voraz puro, determinista. Con valores mayores es el voraz
+        \emph{aleatorizado} que necesitan GRASP y las reparaciones (sección~\ref{sec:grasp});
+  \item \cod{memoria} y \cod{lambda}: solo los usa GRASP.
+\end{itemize}
+
+El código tiene tres bloques. El primero calcula las ganancias iniciales recorriendo
+únicamente las filas sin cubrir:
+
+\fragmento{base.c}{493}{504}
+
+El segundo, dentro del bucle principal, recorre las candidatas, descarta las que ya no
+aportan nada y mantiene ordenadas las \cod{lrc} mejores (una inserción en una lista ordenada
+muy corta):
+
+\fragmento{base.c}{522}{549}
+
+El tercero actualiza las ganancias \emph{antes} de insertar la columna elegida: por cada fila
+que la elegida va a cubrir por primera vez, todas las columnas que cubren esa fila pierden
+una unidad de ganancia.
+
+\fragmento{base.c}{551}{560}
+
+\begin{idea}[Por qué es rápido]
+Las ganancias no se recalculan desde cero en cada paso: se \emph{actualizan}. Cada fila pasa
+de ``sin cubrir'' a ``cubierta'' una sola vez, y en ese momento se recorre su lista de
+columnas. En total se recorren los unos de la matriz como mucho una vez ($\approx 75\,000$
+operaciones), más el repaso de la lista de candidatas en cada paso. Una construcción
+completa tarda unos 8 milisegundos.
+\end{idea}
+
+\subsection{Comparación de los tres criterios}\label{sec:res-voraz}
+
+La tabla~\ref{tab:basicos} (página~\pageref{tab:basicos}) recoge el resultado de los tres
+criterios sobre las 30 instancias. La medida es la desviación porcentual respecto del óptimo
+(RPD, definida en la sección~\ref{sec:rpd}). En las 6 instancias de calibración:
+\begin{itemize}
+  \item el criterio 1 (la más barata) queda un 15.9\,\% por encima del óptimo y usa unas 243
+        columnas: llena la solución de columnas baratas que cubren muy poco;
+  \item el criterio 2 (la que más cubre) usa solo 49 columnas pero queda un 33.4\,\% por
+        encima: elige columnas grandes sin mirar que son carísimas;
+  \item el criterio 3 (cociente) queda un 6.6\,\% por encima, con unas 167 columnas.
+\end{itemize}
+
+\begin{decision}[Decisión: criterio del cociente]
+Se adopta el criterio 3 como constructivo de la práctica y como base de todas las
+reparaciones y construcciones de las metaheurísticas. La elección se ha hecho mirando solo
+las 6 instancias de calibración; las 24 de validación la confirman (6.4\,\% frente a
+15.5\,\% y 31.6\,\%). Coincide con lo esperado por la estructura de las instancias (los
+costes están correlacionados con la cobertura, sección~\ref{sec:instancias}).
+\end{decision}

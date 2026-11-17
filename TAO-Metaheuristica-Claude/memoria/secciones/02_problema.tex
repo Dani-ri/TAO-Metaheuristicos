@@ -1,0 +1,168 @@
+% ============================================================================
+\section{El problema de cubrimiento}\label{sec:problema}
+% ============================================================================
+
+\subsection{Enunciado y formulación}
+
+Se tiene una lista de $m$ \emph{elementos} que hay que atender y una lista de $n$
+\emph{recursos} entre los que elegir. Cada recurso $j$ tiene un coste $c_j$ y atiende a unos
+cuantos elementos. Hay que elegir un conjunto de recursos de coste total mínimo de forma que
+\textbf{todos} los elementos queden atendidos por al menos un recurso elegido.
+
+El ejemplo clásico es la localización de servicios de emergencia: los elementos son barrios,
+los recursos son posibles emplazamientos de un parque de bomberos, y un emplazamiento
+``cubre'' los barrios a los que llega en menos de diez minutos. Otro ejemplo muy importante
+en la práctica es la planificación de tripulaciones de aerolíneas y ferrocarriles: los
+elementos son los vuelos o trayectos y cada recurso es un turno de trabajo posible.
+
+En forma matricial, los elementos son las \textbf{filas} y los recursos las \textbf{columnas}
+de una matriz $A$ de ceros y unos, con $a_{ij}=1$ si la columna $j$ cubre la fila $i$. La
+variable $x_j$ vale 1 si se elige la columna $j$ y 0 si no:
+\begin{equation}\label{eq:scp}
+\begin{aligned}
+ \min\quad & z=\sum_{j=1}^{n} c_j x_j \\
+ \text{sujeto a}\quad & \sum_{j=1}^{n} a_{ij} x_j \ \ge\ 1 \qquad i=1,\dots,m \\
+ & x_j\in\{0,1\} \qquad j=1,\dots,n .
+\end{aligned}
+\end{equation}
+La restricción $i$ dice exactamente ``la fila $i$ está cubierta por al menos una columna
+elegida''. En inglés el problema se llama \emph{Set Covering Problem} (SCP).
+
+A lo largo del documento se usa este vocabulario:
+\begin{itemize}
+  \item una \textbf{solución} es un conjunto $S$ de columnas;
+  \item es \textbf{factible} si cubre todas las filas;
+  \item su \textbf{coste} es $z(S)=\sum_{j\in S} c_j$;
+  \item una columna de $S$ es \textbf{redundante} si al quitarla la solución sigue siendo
+        factible (todas sus filas están cubiertas también por otra columna de $S$). Quitar
+        una columna redundante siempre abarata la solución, así que una buena solución no
+        tiene ninguna.
+\end{itemize}
+
+\subsection{El ejemplo del enunciado}\label{sec:ejemplo}
+
+El enunciado da un ejemplo con $m=3$ filas, $n=5$ columnas y costes $c=(2,5,4,3,1)$:
+\[
+A=\begin{pmatrix}
+1&0&0&1&0\\
+0&1&0&1&1\\
+0&1&1&0&0
+\end{pmatrix}
+\qquad
+\begin{array}{l}
+\text{fila 1: la cubren las columnas 1 y 4}\\
+\text{fila 2: la cubren las columnas 2, 4 y 5}\\
+\text{fila 3: la cubren las columnas 2 y 3}
+\end{array}
+\]
+La solución $\{4,3\}$ es factible (la columna 4 cubre las filas 1 y 2, la 3 cubre la fila 3)
+y cuesta $3+4=7$. La solución $\{1,5,3\}$ también cuesta $2+1+4=7$. No hay ninguna más
+barata, de modo que el óptimo es $z^\ast=7$. En cambio $\{4,2\}$ es factible pero cuesta 8, y
+$\{1,5\}$ no es factible porque deja sin cubrir la fila 3. Este ejemplo se volverá a usar
+para seguir a mano el algoritmo constructivo (sección~\ref{sec:constructivo}).
+
+\subsection{Formato de los ficheros}
+
+El fichero \cod{SCPXX.dat} contiene, en este orden: $m$ y $n$; los $n$ costes; y, para cada
+fila, cuántas columnas la cubren seguido de los índices de esas columnas (numeradas desde 1).
+Es el mismo formato de la biblioteca de problemas OR-Library de
+Beasley~\cite{orlib}. El ejemplo anterior se escribe así:
+\begin{verbatim}
+   3 5
+   2 5 4 3 1
+   2
+   1 4
+   3
+   2 4 5
+   2
+   2 3
+\end{verbatim}
+Obsérvese que el fichero describe la matriz \emph{por filas}. Los algoritmos necesitan
+también la descripción \emph{por columnas} (qué filas cubre cada columna); el programa la
+construye al leer (sección~\ref{sec:estructuras}).
+
+\subsection{Por qué hacen falta heurísticas}
+
+El problema de cubrimiento es \textbf{NP-duro}: su versión de decisión es uno de los
+problemas NP-completos clásicos (los apuntes citan ``recubrimiento y empaquetado'' entre los
+ejemplos de la clase NP-completo). Esto significa que no se conoce ningún algoritmo que
+garantice encontrar el óptimo en un tiempo que crezca de forma polinómica con el tamaño del
+problema, y se sospecha que no existe. Con $n=10\,000$ columnas hay $2^{10\,000}$
+subconjuntos posibles; enumerarlos es impensable.
+
+Los apuntes distinguen dos formas de atacar un problema así:
+\begin{itemize}
+  \item un \textbf{algoritmo exacto} garantiza el óptimo, pero puede necesitar un tiempo
+        excesivo;
+  \item un \textbf{algoritmo heurístico} da una buena solución factible en un tiempo
+        razonable, sin garantía de que sea la óptima.
+\end{itemize}
+La práctica trata de los segundos.
+
+\subsection{Las instancias de la práctica}\label{sec:instancias}
+
+Se dispone de 30 instancias, \cod{SCP01} a \cod{SCP30}, todas con la misma forma. La
+tabla~\ref{tab:instancias} resume sus características, medidas sobre los 30 ficheros.
+
+\begin{table}[H]
+\centering
+\caption{Características de las 30 instancias (mínimo, media y máximo entre instancias).}
+\label{tab:instancias}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Característica & Mínimo & Media & Máximo \\ \midrule
+Filas $m$ & 500 & 500 & 500 \\
+Columnas $n$ & 10\,000 & 10\,000 & 10\,000 \\
+Unos de la matriz $A$ & 75\,021 & 75\,512 & 76\,322 \\
+Densidad de $A$ (\% de unos) & 1.50 & 1.51 & 1.53 \\
+Columnas que cubren a una fila & 104 & 151 & 200 \\
+Filas que cubre una columna & 0 & 7.55 & 33 \\
+Coste de una columna & 0.01 & 5.92 & 26.46 \\
+Correlación entre coste y n.º de filas cubiertas & 0.62 & 0.66 & 0.69 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+De la tabla se deducen tres hechos que condicionan el diseño:
+\begin{enumerate}
+  \item \textbf{La matriz es muy dispersa} (solo un 1.5\,\% de unos). Guardarla como una
+        tabla de $500\times 10\,000$ y recorrerla entera sería un derroche; conviene guardar
+        solo los unos (sección~\ref{sec:estructuras}).
+  \item \textbf{Los costes son números reales distintos entre sí}. No es un problema de
+        ``coste unitario'' en el que solo importe cuántas columnas se eligen.
+  \item \textbf{Las columnas caras cubren más filas} (correlación de 0.66). Elegir siempre la
+        columna más barata, o siempre la que más cubre, será mala idea; hay que mirar la
+        relación entre ambas cosas (sección~\ref{sec:constructivo}).
+\end{enumerate}
+
+\subsection{El valor óptimo de cada instancia}\label{sec:optimos}
+
+Para saber si un heurístico es bueno hay que compararlo con algo. Lo ideal es compararlo con
+el \emph{valor óptimo}. Aunque el problema es NP-duro en general, estas 30 instancias en
+concreto resultan fáciles para un resolutor exacto de programación entera: con el resolutor
+libre HiGHS (a través de la función \cod{milp} de la biblioteca SciPy~\cite{scipymilp}) cada
+una se resuelve hasta optimalidad demostrada en menos de dos segundos. El guion
+\cod{experimentos/calcular\_optimos.py} hace ese cálculo y el fichero
+\cod{experimentos/optimos.csv} guarda los 30 valores, que van de 321.77 a 391.25.
+
+\begin{decision}[Decisión: medir contra el óptimo exacto]
+Los óptimos se usan \textbf{exclusivamente como vara de medir}. Ningún algoritmo de la
+práctica los conoce ni los utiliza. La ventaja frente a comparar con ``la mejor solución
+encontrada por nuestros propios algoritmos'' es que la medida es absoluta: un 4\,\% significa
+de verdad un 4\,\% por encima de lo mejor posible.
+\end{decision}
+
+Al calcular los óptimos aparecen dos regularidades que conviene conocer porque explican
+buena parte de los resultados:
+\begin{itemize}
+  \item En las 30 instancias la solución óptima tiene \textbf{exactamente 50 columnas}, es
+        decir, usa columnas ``grandes'' que cubren unas 10 filas cada una.
+  \item En las 30 instancias la relajación lineal del modelo~\eqref{eq:scp} (cambiar
+        $x_j\in\{0,1\}$ por $0\le x_j\le 1$) tiene el mismo valor que el problema entero. Por
+        eso un resolutor exacto las liquida tan deprisa.
+\end{itemize}
+Ambas cosas indican que las instancias se generaron escondiendo dentro una solución muy buena
+de 50 columnas, rodeada de otras 9\,950 columnas ``de relleno''. Para un heurístico eso es
+una trampa: como se verá, las soluciones que construye de forma natural usan unas 140--170
+columnas pequeñas y baratas, que se parecen muy poco a la solución escondida. La
+sección~\ref{sec:conclusiones} vuelve sobre este punto.

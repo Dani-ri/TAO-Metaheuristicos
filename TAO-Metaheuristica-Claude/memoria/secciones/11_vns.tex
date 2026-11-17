@@ -1,0 +1,122 @@
+% ============================================================================
+\section{Búsqueda en Entorno Variable (VNS)}\label{sec:vns}
+% ============================================================================
+
+\subsection{Idea}
+
+La Búsqueda en Entorno Variable (\emph{Variable Neighborhood Search}, Hansen y Mladenović,
+1997) se apoya en tres observaciones que recogen los apuntes:
+\begin{itemize}
+  \item un óptimo local respecto de una estructura de entornos \textbf{no} es necesariamente
+        óptimo local respecto de otra;
+  \item un óptimo global es óptimo local respecto de \textbf{cualquier} estructura de
+        entornos;
+  \item por tanto, utilizando varias estructuras de entornos es más ``fácil'' aproximarse al
+        óptimo global.
+\end{itemize}
+La idea es \emph{cambiar de entorno de forma sistemática}, y se aplica en dos sitios:
+\begin{enumerate}
+  \item \textbf{Para bajar}: en lugar de una búsqueda local con un solo entorno se usa la
+        búsqueda descendente VND con varios (sección~\ref{sec:vnd}).
+  \item \textbf{Para escapar} del óptimo local al que se llega: se ``agita'' la solución
+        saltando a una solución al azar de un entorno \emph{de perturbación}. Si desde ahí la
+        búsqueda local no encuentra nada mejor, se prueba con un entorno de perturbación más
+        amplio, y así sucesivamente. En cuanto se encuentra algo mejor, se vuelve al entorno
+        más pequeño.
+\end{enumerate}
+El principio es prudente: primero se prueban saltos cortos (la solución nueva conserva casi
+todo lo bueno de la actual) y solo si no funcionan se dan saltos más largos. Un estudio
+completo y de acceso libre de las variantes de la VNS es~\cite{vnsbasics}.
+
+\subsection{Esquema de los apuntes}
+
+Los apuntes presentan la variante \emph{general} (GVNS), que es la que usa VND como búsqueda
+local:
+
+\begin{apuntes}[Esquema de los apuntes: Búsqueda en Entorno Variable General (GVNS)]
+\begin{enumerate}[label=\arabic*.,itemsep=0pt]
+  \item Inicialización:
+  \begin{enumerate}[label=1.\arabic*,itemsep=0pt]
+    \item Construir una solución inicial $S$ y definir $A$ para la VND
+    \item $B=\{\Om1,\dots,\Om{j_B}\}$
+    \item $n\gets 1$
+  \end{enumerate}
+  \item Repetir hasta $n=n_{\max}$:
+  \begin{enumerate}[label=2.\arabic*,itemsep=0pt]
+    \item $j\gets 1$
+    \item Perturbación: elegir aleatoriamente $S'\in\Om{j}(S)$
+    \item Realizar una VND a partir de $S'$ y $A$ $\rightsquigarrow$ $S''$
+    \item Si $z(S'')<z(S)$ $\Rightarrow$ $S=S''$, ir al paso 2.1
+    \item Si $j<j_B$ $\Rightarrow$ $j=j+1$, ir al paso 2.2
+    \item $n\gets n+1$
+  \end{enumerate}
+\end{enumerate}
+\end{apuntes}
+
+Hay, pues, dos familias de entornos: $A$, los que usa la VND para bajar, y $B$, los que se
+usan para perturbar.
+
+\subsection{Adaptación al problema de cubrimiento}
+
+\paragraph{Entornos de descenso $A$.} Los de la búsqueda local:
+$A=\{\D1,\dots,\D{j_A}\}$ (eliminación, intercambio, inserción con expulsión). El parámetro
+$j_A$ dice cuántos se usan. Con $j_A=1$ o $2$ el algoritmo se parece a la VNS \emph{básica}
+(que los apuntes describen como ``GVNS con una búsqueda local en lugar de VND'').
+
+\paragraph{Entornos de perturbación $B$.}
+
+\begin{decision}[Decisión: $\Om{j}$ = quitar $j$ columnas al azar y reparar]
+$\Om{j}(S)$ es el conjunto de soluciones que se obtienen con la función \cod{perturbar}
+(sección~\ref{sec:perturbar}) quitando $j$ columnas. Cumple lo que la VNS pide a los entornos
+de perturbación:
+\begin{itemize}[itemsep=0pt]
+  \item están \emph{anidados en tamaño}: cuanto mayor es $j$, más se aleja $S'$ de $S$;
+  \item elegir una solución al azar de $\Om{j}(S)$ es inmediato;
+  \item $S'$ es siempre factible.
+\end{itemize}
+Con $j=1$ se quita una sola columna y se rehace esa pequeña zona de la solución; con $j=10$
+se rehace una parte apreciable.
+\end{decision}
+
+\paragraph{Solución inicial.} La del constructivo voraz, mejorada con la VND.
+
+\paragraph{Criterio de parada.} El contador $n_{\max}$ del esquema se sustituye por el límite
+de tiempo de CPU, como en los demás algoritmos. Cada ``vuelta'' de $n$ recorre las
+perturbaciones $\Om1,\dots,\Om{j_B}$; al agotarlas sin mejorar, se vuelve a empezar por
+$\Om1$ (con otros números aleatorios saldrán otras soluciones).
+
+\paragraph{Aceptación.} Solo se acepta $S''$ si es estrictamente mejor que $S$ (paso 2.4).
+Por tanto, en la VNS la solución actual es siempre la mejor conocida: no hace falta guardar
+una $x^\ast$ aparte.
+
+\subsection{Parámetros}
+
+\begin{center}
+\begin{tabular}{@{}lp{11.3cm}@{}}
+\toprule
+Nombre & Significado y efecto \\ \midrule
+\cod{jb} & $j_B$: número de entornos de perturbación, es decir, tamaño máximo del salto. \\
+\cod{ja} & $j_A$: número de entornos de la VND (1, 2 o 3). \\
+\cod{lrc} & Tamaño de la lista de candidatos al reparar tras la perturbación. Con 1 la
+            reparación es determinista y todo el azar viene de qué columnas se quitan. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+La VNS es la metaheurística con menos parámetros de las cinco, lo que suele citarse como una
+de sus virtudes.
+
+\subsection{Recorrido por el código}
+
+El bucle principal ocupa quince líneas y los comentarios indican el paso del esquema al que
+corresponde cada una:
+
+\fragmento{vns.c}{53}{69}
+
+\begin{idea}[Relación con los otros algoritmos]
+La VNS comparte piezas con el temple: ambos generan soluciones nuevas con \cod{perturbar}.
+Las diferencias son dos. El temple acepta empeoramientos con cierta probabilidad y no aplica
+búsqueda local; la VNS aplica la búsqueda local (VND) a cada solución perturbada, solo acepta
+mejoras, y a cambio va aumentando el tamaño del salto. Comparar sus resultados dice, por
+tanto, qué estrategia de escape funciona mejor en este problema.
+\end{idea}

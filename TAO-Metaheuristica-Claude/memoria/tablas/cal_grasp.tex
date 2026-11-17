@@ -1,0 +1,15 @@
+\begin{table}[H]
+\centering
+\caption{Calibración de GRASP. Cada fila es una etapa: RPD medio (\%) sobre las 18 ejecuciones (6 instancias $\times$ 3 semillas) de cada valor probado, con los demás parámetros fijos. En negrita, el mejor.}
+\label{tab:cal-grasp}
+\small
+\begin{tabular}{@{}cl>{\raggedright\arraybackslash}p{10.4cm}c@{}}
+\toprule
+Etapa & Parámetro & Valor probado $\rightarrow$ RPD medio & Elegido \\ \midrule
+1 & \texttt{lrc} & 2\,$\rightarrow$\,4.149;\quad 3\,$\rightarrow$\,3.952;\quad 5\,$\rightarrow$\,3.729;\quad 10\,$\rightarrow$\,\textbf{3.533} & 10 \\
+2 & \texttt{lamf} & 1.0\,$\rightarrow$\,4.322;\quad 0.8\,$\rightarrow$\,3.636;\quad 0.5\,$\rightarrow$\,3.533;\quad 0.2\,$\rightarrow$\,\textbf{3.519} & 0.2 \\
+3 & \texttt{elite} & 5\,$\rightarrow$\,\textbf{3.441};\quad 10\,$\rightarrow$\,3.519;\quad 20\,$\rightarrow$\,3.726 & 5 \\
+4 & \texttt{grent} & 2\,$\rightarrow$\,4.407;\quad 3\,$\rightarrow$\,\textbf{3.441} & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}

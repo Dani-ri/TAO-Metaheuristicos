@@ -1,0 +1,14 @@
+\begin{table}[H]
+\centering
+\caption{Calibración de VNS. Cada fila es una etapa: RPD medio (\%) sobre las 18 ejecuciones (6 instancias $\times$ 3 semillas) de cada valor probado, con los demás parámetros fijos. En negrita, el mejor.}
+\label{tab:cal-vns}
+\small
+\begin{tabular}{@{}cl>{\raggedright\arraybackslash}p{10.4cm}c@{}}
+\toprule
+Etapa & Parámetro & Valor probado $\rightarrow$ RPD medio & Elegido \\ \midrule
+1 & \texttt{ja} & 1\,$\rightarrow$\,4.185;\quad 2\,$\rightarrow$\,4.228;\quad 3\,$\rightarrow$\,\textbf{3.625} & 3 \\
+2 & \texttt{jb} & 2\,$\rightarrow$\,3.847;\quad 5\,$\rightarrow$\,3.625;\quad 10\,$\rightarrow$\,\textbf{3.625};\quad 20\,$\rightarrow$\,3.788 & 10 \\
+3 & \texttt{lrc} & 1\,$\rightarrow$\,3.598;\quad 2\,$\rightarrow$\,3.625;\quad 3\,$\rightarrow$\,\textbf{3.585};\quad 5\,$\rightarrow$\,3.626 & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}

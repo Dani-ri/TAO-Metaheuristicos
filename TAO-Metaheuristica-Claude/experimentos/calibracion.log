@@ -1,0 +1,22 @@
+temple    vuelta 1 etapa 1  k         1: 6.451  2: 4.597  3: 4.748  5: 5.611  -> elegido 2
+temple    vuelta 1 etapa 2  lrc       1: 4.766  2: 4.597  3: 4.598  5: 4.605  -> elegido 2
+temple    vuelta 1 etapa 3  p0        0.02: 4.477  0.1: 4.477  0.3: 4.496  0.5: 4.597  -> elegido 0.1
+temple    vuelta 1 etapa 4  alfa      0.9: 4.559  0.95: 4.477  0.99: 4.127  -> elegido 0.99
+temple    vuelta 1 etapa 5  L         200: 4.935  1000: 4.127  5000: 6.557  -> elegido 1000
+tabu      vuelta 1 etapa 1  tent      5: 4.215  10: 4.136  20: 4.098  50: 4.280  -> elegido 20
+tabu      vuelta 1 etapa 2  tsal      1: 4.096  3: 4.098  5: 4.188  10: 4.196  -> elegido 1
+tabu      vuelta 1 etapa 3  beta      0: 4.124  0.01: 4.096  0.05: 4.323  0.2: 4.513  -> elegido 0.01
+tabu      vuelta 1 etapa 4  reinicio  500: 4.145  2000: 4.096  1000000: 4.095  -> elegido 1000000
+grasp     vuelta 1 etapa 1  lrc       2: 4.148  3: 3.952  5: 3.729  10: 3.533  -> elegido 10
+grasp     vuelta 1 etapa 2  lamf      1.0: 4.322  0.8: 3.636  0.5: 3.533  0.2: 3.519  -> elegido 0.2
+grasp     vuelta 1 etapa 3  elite     5: 3.441  10: 3.519  20: 3.726  -> elegido 5
+grasp     vuelta 1 etapa 4  grent     2: 4.407  3: 3.441  -> elegido 3
+genetico  vuelta 1 etapa 1  cruce     1: 5.176  2: 5.436  3: 5.267  -> elegido 1
+genetico  vuelta 1 etapa 2  pob       20: 5.021  50: 5.176  100: 5.155  -> elegido 20
+genetico  vuelta 1 etapa 3  pmut      0: 5.714  0.2: 5.021  0.5: 4.819  1.0: 4.773  -> elegido 1.0
+genetico  vuelta 1 etapa 4  nmut      1: 5.036  2: 4.773  5: 4.613  -> elegido 5
+genetico  vuelta 1 etapa 5  bl        0: 4.613  2: 4.292  -> elegido 2
+vns       vuelta 1 etapa 1  ja        1: 4.185  2: 4.228  3: 3.625  -> elegido 3
+vns       vuelta 1 etapa 2  jb        2: 3.847  5: 3.625  10: 3.625  20: 3.788  -> elegido 10
+vns       vuelta 1 etapa 3  lrc       1: 3.598  2: 3.625  3: 3.585  5: 3.626  -> elegido 3
+Calibracion terminada. Configuraciones finales en decisiones.json

@@ -1,0 +1,15 @@
+\begin{table}[H]
+\centering
+\caption{Calibración de Búsqueda Tabú. Cada fila es una etapa: RPD medio (\%) sobre las 18 ejecuciones (6 instancias $\times$ 3 semillas) de cada valor probado, con los demás parámetros fijos. En negrita, el mejor.}
+\label{tab:cal-tabu}
+\small
+\begin{tabular}{@{}cl>{\raggedright\arraybackslash}p{10.4cm}c@{}}
+\toprule
+Etapa & Parámetro & Valor probado $\rightarrow$ RPD medio & Elegido \\ \midrule
+1 & \texttt{tent} & 5\,$\rightarrow$\,4.215;\quad 10\,$\rightarrow$\,4.136;\quad 20\,$\rightarrow$\,\textbf{4.098};\quad 50\,$\rightarrow$\,4.280 & 20 \\
+2 & \texttt{tsal} & 1\,$\rightarrow$\,\textbf{4.096};\quad 3\,$\rightarrow$\,4.098;\quad 5\,$\rightarrow$\,4.188;\quad 10\,$\rightarrow$\,4.196 & 1 \\
+3 & \texttt{beta} & 0\,$\rightarrow$\,4.124;\quad 0.01\,$\rightarrow$\,\textbf{4.096};\quad 0.05\,$\rightarrow$\,4.323;\quad 0.2\,$\rightarrow$\,4.513 & 0.01 \\
+4 & \texttt{reinicio} & 500\,$\rightarrow$\,4.145;\quad 2000\,$\rightarrow$\,4.096;\quad $10^6$\,$\rightarrow$\,\textbf{4.095} & $10^6$ \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,40 @@
+\begin{table}[H]
+\centering
+\caption{Configuración de partida (base) y configuración final de cada metaheurística, con su RPD medio (\%) en las instancias de calibración. En negrita, los valores que la calibración ha cambiado.}
+\label{tab:config}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Algoritmo & Parámetro & Base & Final \\ \midrule
+Temple Simulado & \texttt{k} & 2 & 2 \\
+ & \texttt{lrc} & 2 & 2 \\
+ & \texttt{p0} & 0.5 & \textbf{0.1} \\
+ & \texttt{alfa} & 0.95 & \textbf{0.99} \\
+ & \texttt{L} & 1000 & 1000 \\
+ & \emph{RPD medio} & \emph{4.597} & \emph{4.127} \\
+\midrule
+Búsqueda Tabú & \texttt{tent} & 10 & \textbf{20} \\
+ & \texttt{tsal} & 3 & \textbf{1} \\
+ & \texttt{beta} & 0.01 & 0.01 \\
+ & \texttt{reinicio} & 2000 & \textbf{$10^6$} \\
+ & \emph{RPD medio} & \emph{4.136} & \emph{4.095} \\
+\midrule
+GRASP & \texttt{lrc} & 3 & \textbf{10} \\
+ & \texttt{lamf} & 0.5 & \textbf{0.2} \\
+ & \texttt{elite} & 10 & \textbf{5} \\
+ & \texttt{grent} & 3 & 3 \\
+ & \emph{RPD medio} & \emph{3.952} & \emph{3.441} \\
+\midrule
+Algoritmo Genético & \texttt{cruce} & 2 & \textbf{1} \\
+ & \texttt{pob} & 50 & \textbf{20} \\
+ & \texttt{pmut} & 0.2 & \textbf{1.0} \\
+ & \texttt{nmut} & 2 & \textbf{5} \\
+ & \texttt{bl} & 0 & \textbf{2} \\
+ & \emph{RPD medio} & \emph{5.436} & \emph{4.292} \\
+\midrule
+VNS & \texttt{ja} & 3 & 3 \\
+ & \texttt{jb} & 5 & \textbf{10} \\
+ & \texttt{lrc} & 2 & \textbf{3} \\
+ & \emph{RPD medio} & \emph{3.625} & \emph{3.585} \\
+\bottomrule
+\end{tabular}
+\end{table}

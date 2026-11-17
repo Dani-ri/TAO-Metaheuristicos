@@ -1,0 +1,179 @@
+% ============================================================================
+\section{Temple Simulado}\label{sec:temple}
+% ============================================================================
+
+\subsection{Idea}
+
+El Temple Simulado (\emph{Simulated Annealing}, Kirkpatrick, Gelatt y Vecchi, 1983) se inspira
+en el templado de materiales: si un vidrio o un metal fundido se enfría muy despacio, sus
+partículas tienen tiempo de colocarse en la configuración de mínima energía; si se enfría de
+golpe, quedan atrapadas en una configuración peor. En la analogía, la ``energía'' es el coste
+de la solución y la ``temperatura'' $T$ es un número que controla cuánto desorden se tolera.
+
+El algoritmo es una búsqueda local con una diferencia: cuando la vecina generada es
+\emph{peor} que la solución actual no se rechaza siempre, sino que se acepta con probabilidad
+\[
+   P(\text{aceptar}) \;=\; e^{-\delta/T}, \qquad \delta = C(y)-C(x) \ \ge 0 ,
+\]
+donde $\delta$ es el empeoramiento. Esta fórmula tiene dos propiedades que son toda la gracia
+del método:
+\begin{itemize}
+  \item cuanto mayor es el empeoramiento $\delta$, menor es la probabilidad de aceptarlo;
+  \item cuanto mayor es la temperatura $T$, más fácil es aceptar empeoramientos.
+\end{itemize}
+
+\begin{center}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+ & $\delta=0.1$ & $\delta=1$ & $\delta=5$ \\ \midrule
+$T=5$ (caliente) & 0.98 & 0.82 & 0.37 \\
+$T=1$ & 0.90 & 0.37 & 0.007 \\
+$T=0.1$ (frío) & 0.37 & 0.00005 & $\approx 0$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Al principio $T$ es alta y el algoritmo se pasea casi libremente por el espacio de soluciones
+(\textbf{diversifica}); a medida que $T$ baja, se va pareciendo a una búsqueda local que solo
+acepta mejoras (\textbf{intensifica}). Una exposición breve y rigurosa del método puede
+leerse en~\cite{bertsimas}; una más informal, en~\cite[cap.~2]{luke}.
+
+\subsection{Esquema de los apuntes}
+
+\begin{apuntes}[Esquema de los apuntes: Temple Simulado, algoritmo general]
+\begin{tabbing}
+\quad\=\quad\=\quad\=\quad\=\kill
+Construir una solución inicial $x\in S$ y poner $x^\ast=x$\\
+Determinar la temperatura inicial $T>0$\\
+Repetir \{\\
+\> $n=0$\\
+\> Repetir \{\\
+\>\> Generar una solución vecina $y\in V(x)$\\
+\>\> Evaluar $y$ calculando $\delta=C(y)-C(x)$\\
+\>\> Si ($\delta<0$) [$y$ es mejor que $x$]: \ $x=y$; \ si $C(x)<C(x^\ast)$ poner $x^\ast=x$\\
+\>\> Si ($\delta\ge 0$) [$y$ no es mejor que $x$]:\\
+\>\>\> Generar un número aleatorio $u\in(0,1)$\\
+\>\>\> Si $u<\exp(-\delta/T)$ hacer $x=y$\\
+\>\> $n=n+1$\\
+\> \} Mientras $n\le N(T)$\\
+\> Disminuir $T$\\
+\} Mientras no se haya alcanzado el criterio de parada
+\end{tabbing}
+\end{apuntes}
+
+Los apuntes señalan qué hay que decidir para aplicarlo. Por un lado la \emph{adaptación al
+problema}: conjunto factible, cálculo del coste, estructura de entornos y solución inicial.
+Por otro la \emph{estrategia de templado}: temperatura inicial, cómo disminuye, número de
+iteraciones por temperatura y criterio de parada. Los apartados siguientes responden a cada
+punto.
+
+\subsection{Adaptación al problema de cubrimiento}
+
+\paragraph{Conjunto factible y coste.} Las soluciones son siempre coberturas factibles y el
+coste es $z$ (sección~\ref{sec:programa}). Como la solución lleva su coste actualizado,
+$\delta$ es una simple resta.
+
+\paragraph{Solución inicial.} La del constructivo voraz (criterio del cociente).
+
+\paragraph{Vecindad.} El esquema pide ``generar una solución vecina'', es decir, \emph{una
+vecina al azar}, no la mejor.
+
+\begin{decision}[Decisión: la vecina se genera con la perturbación $\Om{k}$]
+La vecina de $x$ se obtiene con la función \cod{perturbar} (sección~\ref{sec:perturbar}): se
+quitan $k$ columnas al azar, se reparan las filas descubiertas con el voraz aleatorizado y se
+eliminan redundantes. Razones:
+\begin{itemize}[itemsep=0pt]
+  \item La vecina es siempre factible, como exige nuestro diseño.
+  \item Un movimiento más simple no sirve como vecindad \emph{aleatoria}: si se quita una
+        columna al azar la solución casi siempre deja de ser factible, y si se añade una al
+        azar la solución solo empeora. Un movimiento de inserción de $\D3$ elegido al azar
+        casi siempre empeora mucho, porque la mayoría de las columnas no vuelve redundante a
+        ninguna otra; elegirlos al azar desperdiciaría casi todas las iteraciones.
+  \item Con $\Om{k}$ la diferencia de coste $\delta$ es pequeña y puede ser positiva o
+        negativa, que es lo que el temple necesita para funcionar.
+  \item El tamaño del cambio se regula con un solo número, $k$.
+\end{itemize}
+\end{decision}
+
+\paragraph{Temperatura inicial.} La temperatura no tiene unidades ``naturales'': un valor
+bueno depende de lo grandes que sean las diferencias de coste entre vecinas, que cambian de
+una instancia a otra.
+
+\begin{decision}[Decisión: fijar $T_0$ a partir de una probabilidad $p_0$]
+En lugar de calibrar $T_0$ directamente, se calibra la probabilidad $p_0$ con la que se
+quiere aceptar, al empezar, un empeoramiento ``típico''. El programa genera 100 vecinas de la
+solución inicial, calcula el empeoramiento medio $\bar\delta^{+}$ de las que empeoran y
+despeja $T_0$ de $e^{-\bar\delta^{+}/T_0}=p_0$:
+\[
+   T_0 \;=\; \frac{-\,\bar\delta^{+}}{\ln p_0}.
+\]
+Así el parámetro tiene un significado claro (``al principio acepto la mitad de los
+empeoramientos'' si $p_0=0.5$) y la temperatura se adapta sola a cada instancia.
+\end{decision}
+
+\fragmento{temple.c}{67}{83}
+
+\paragraph{Enfriamiento.} Se usa el enfriamiento \emph{geométrico}, $T\leftarrow\alpha T$ con
+$0<\alpha<1$. Es el ejemplo que dan los apuntes~\cite{yanez} (``por ejemplo, $T=\alpha T$,
+$0<\alpha<1$'') y el más habitual: baja deprisa al principio (cuando casi todo se acepta y
+hay poco que ganar) y cada vez más despacio después.
+
+\paragraph{Iteraciones por temperatura.} $N(T)=L$ constante: se generan $L$ vecinas con cada
+valor de la temperatura.
+
+\paragraph{Parada y recalentamiento.} El criterio de parada es el tiempo de CPU. Puede
+ocurrir que la temperatura baje tanto que ya no se acepte ningún cambio mucho antes de que se
+acabe el tiempo.
+
+\begin{decision}[Decisión: recalentar si el sistema se congela]
+Si durante 5 temperaturas seguidas no se acepta ningún cambio de coste, se considera que el
+sistema está congelado: la temperatura vuelve a $T_0$ y la búsqueda se reanuda desde la mejor
+solución conocida $x^\ast$. Sin esto, con un enfriamiento rápido el algoritmo pasaría casi
+todo el tiempo parado en un óptimo local. Volver a $x^\ast$ (y no seguir desde la solución
+actual) es una forma de intensificación.
+\end{decision}
+
+\subsection{Parámetros}
+
+\begin{center}
+\begin{tabular}{@{}llp{9.6cm}@{}}
+\toprule
+Nombre & Símbolo & Significado y efecto \\ \midrule
+\cod{k} & $k$ & Columnas que se quitan para generar una vecina. Pequeño: vecinas muy
+               parecidas, pasos cortos y baratos. Grande: pasos largos y más caros. \\
+\cod{lrc} & --- & Tamaño de la lista de candidatos al reparar. Con 1 la reparación es
+               determinista; con más, hay más variedad de vecinas. \\
+\cod{p0} & $p_0$ & Probabilidad inicial de aceptar un empeoramiento típico. Fija $T_0$. Alta:
+               empieza muy ``caliente'' (explora). Baja: empieza casi como una búsqueda local. \\
+\cod{alfa} & $\alpha$ & Factor de enfriamiento. Cercano a 1: enfría despacio. \\
+\cod{L} & $L$ & Vecinas generadas en cada temperatura. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{idea}[Cómo interactúan $\alpha$, $L$ y el tiempo]
+Con $k=2$ el programa genera unas 84\,000 vecinas por segundo, es decir, unas 420\,000 en los
+5 segundos. Eso son $420\,000/L$ temperaturas distintas, y la temperatura final es
+$T_0\,\alpha^{420\,000/L}$. Por tanto $\alpha$ y $L$ no son independientes: lo que importa es
+\emph{a qué temperatura se llega cuando se acaba el tiempo}. Si se llega demasiado caliente,
+el algoritmo no ha llegado a intensificar; si se enfría demasiado pronto, se pasa el tiempo
+recalentando. La calibración (sección~\ref{sec:cal-temple}) lo muestra con claridad.
+\end{idea}
+
+\subsection{Recorrido por el código}
+
+El bucle principal es una transcripción del esquema de los apuntes. Los comentarios citan la
+línea del esquema a la que corresponde cada instrucción.
+
+\fragmento{temple.c}{87}{120}
+
+Dos detalles de implementación:
+\begin{itemize}
+  \item ``$x=y$'' no se hace copiando la solución, sino \emph{intercambiando} las dos
+        variables (línea \cod{tmp = x; x = y; y = tmp;}). Es instantáneo.
+  \item Cuando la vecina tiene exactamente el mismo coste ($\delta=0$), $e^{0}=1$ y se acepta
+        siempre: el algoritmo puede desplazarse por ``mesetas'' de soluciones de igual coste.
+        Esos desplazamientos no se cuentan como cambios aceptados para decidir si el sistema
+        está congelado.
+\end{itemize}

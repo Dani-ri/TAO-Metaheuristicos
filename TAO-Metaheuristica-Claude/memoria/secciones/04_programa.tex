@@ -1,0 +1,156 @@
+% ============================================================================
+\section{Diseño común del programa}\label{sec:programa}
+% ============================================================================
+
+Los siete algoritmos están en un único programa en C. Esta sección explica las piezas que
+comparten, porque casi todas las decisiones de eficiencia están aquí.
+
+\subsection{Organización en ficheros}
+
+\begin{center}
+\begin{tabular}{@{}lp{11.5cm}@{}}
+\toprule
+Fichero & Contenido \\ \midrule
+\cod{scp.h} & Cabecera: define los tipos de datos (instancia, solución, parámetros) y declara
+              todas las funciones. No contiene código ejecutable. \\
+\cod{base.c} & Herramientas comunes: números aleatorios, reloj, lectura del fichero,
+              operaciones sobre una solución, \cod{completar} y \cod{perturbar}. \\
+\cod{constructivo.c} & Algoritmo constructivo voraz. \\
+\cod{busqueda\_local.c} & Estructuras de entornos $\D1,\D2,\D3$ y búsqueda local (VND). \\
+\cod{temple.c} & Temple Simulado. \\
+\cod{tabu.c} & Búsqueda Tabú. \\
+\cod{grasp.c} & GRASP. \\
+\cod{genetico.c} & Algoritmo Genético. \\
+\cod{vns.c} & Búsqueda en Entorno Variable. \\
+\cod{main.c} & Programa principal: lee los argumentos, llama al algoritmo pedido, comprueba
+              la solución y escribe el resultado. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{decision}[Decisión: un fichero por algoritmo y un único ejecutable]
+Separar cada algoritmo en su fichero permite leerlos de forma independiente. Reunirlos en un
+solo ejecutable garantiza que todos usan \emph{exactamente} las mismas rutinas de lectura,
+de evaluación y de medida del tiempo, de modo que las comparaciones entre ellos son justas.
+\end{decision}
+
+\subsection{Cómo se guarda la instancia}\label{sec:estructuras}
+
+Como solo el 1.5\,\% de la matriz son unos, se guardan dos listas compactas de unos:
+\begin{itemize}
+  \item \textbf{por filas}: para cada fila $i$, las columnas que la cubren. Sirve para
+        responder a ``¿quién puede cubrir esta fila?'';
+  \item \textbf{por columnas}: para cada columna $j$, las filas que cubre. Sirve para
+        responder a ``¿qué pasa si añado o quito esta columna?''.
+\end{itemize}
+Cada lista se guarda en dos vectores: uno con todos los índices seguidos y otro que dice
+dónde empieza cada fila (o columna). Para el ejemplo de la sección~\ref{sec:ejemplo},
+numerando desde 0 como se hace dentro del programa:
+
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+Por filas & Por columnas \\ \midrule
+\cod{fila\_col = [0,3,\ 1,3,4,\ 1,2]} & \cod{col\_fil = [0,\ 1,2,\ 2,\ 0,1,\ 1]} \\
+\cod{fila\_ini = [0, 2, 5, 7]} & \cod{col\_ini = [0, 1, 3, 4, 6, 7]} \\
+\bottomrule
+\end{tabular}
+\end{center}
+Así, las columnas de la fila 1 (la segunda) son \cod{fila\_col[2..4]} $=\{1,3,4\}$, es decir,
+las columnas 2, 4 y 5 del enunciado. Este formato se conoce como CSR/CSC y es el habitual
+para matrices dispersas.
+
+Además se guarda la matriz completa como una tabla de bytes ($500\times10\,000=5$~MB), que
+permite preguntar al instante ``¿cubre la columna $j$ la fila $i$?'' (macro \cod{CUBRE}). Solo
+se usa para esa consulta puntual, nunca se recorre entera.
+
+\fragmento{scp.h}{52}{66}
+
+\subsection{Cómo se guarda una solución}\label{sec:solucion}
+
+Una solución no es solo el conjunto de columnas. Se mantienen \emph{siempre actualizados}:
+\begin{itemize}
+  \item \cod{en[j]}: 1 si la columna $j$ está elegida;
+  \item \cod{lista} y \cod{pos}: las columnas elegidas, una tras otra, y la posición de cada
+        una en esa lista (permite recorrer solo las elegidas y borrar una en tiempo constante);
+  \item \cod{cub[i]}: \textbf{cuántas columnas elegidas cubren la fila $i$};
+  \item \cod{nsin}: cuántas filas están sin cubrir (la solución es factible si y solo si
+        \cod{nsin} $=0$);
+  \item \cod{z}: el coste total.
+\end{itemize}
+
+\begin{idea}[Idea clave: evaluación incremental]
+Gracias al contador \cod{cub}, añadir o quitar una columna solo obliga a tocar las filas de
+\emph{esa} columna (unas 7 u 8 de media), no las 500 filas ni los 75\,000 unos. Como las
+metaheurísticas hacen millones de movimientos, esta es la decisión que más influye en la
+velocidad del programa. También da gratis las dos preguntas que se hacen continuamente:
+\emph{¿es factible?} (\cod{nsin == 0}) y \emph{¿es redundante la columna $j$?} (todas sus
+filas tienen \cod{cub} $\ge 2$).
+\end{idea}
+
+\fragmento{base.c}{313}{328}
+
+\subsection{Todas las soluciones son siempre factibles}
+
+\begin{decision}[Decisión: no trabajar con soluciones infactibles]
+Hay dos formas de tratar la restricción ``todas las filas cubiertas'': (a) permitir soluciones
+que dejen filas sin cubrir y penalizarlas en la función objetivo, o (b) no salir nunca del
+conjunto factible. Se ha elegido (b) en los cinco algoritmos. Razones: no hay que inventar ni
+calibrar un peso de penalización; cualquier solución que el algoritmo tenga entre manos se
+puede devolver tal cual; y en este problema recuperar la factibilidad es muy fácil y barato
+(basta añadir columnas). Cuando un operador rompe la factibilidad (al quitar columnas, al
+cruzar dos soluciones) se \textbf{repara} inmediatamente.
+\end{decision}
+
+La reparación y la construcción son, en el fondo, la misma operación: \emph{cubrir las filas
+que estén sin cubrir}. Por eso existe una única función, \cod{completar}, que usan el
+constructivo (partiendo de la solución vacía), GRASP, el temple, el genético y la VNS
+(partiendo de una solución a la que le faltan columnas). Se explica en la
+sección~\ref{sec:constructivo}.
+
+\subsection{La perturbación \texorpdfstring{$\Om{k}$}{Omega\_k}}\label{sec:perturbar}
+
+Varios algoritmos necesitan ``una solución parecida a $S$ elegida al azar''. Se obtiene con la
+función \cod{perturbar}:
+\begin{enumerate}
+  \item se quitan $k$ columnas de $S$ elegidas al azar (quedan filas sin cubrir);
+  \item se repara con \cod{completar}, prohibiendo que vuelvan a entrar justo las $k$ que se
+        acaban de quitar;
+  \item se eliminan las columnas que hayan quedado redundantes.
+\end{enumerate}
+Llamaremos $\Om{k}(S)$ al conjunto de soluciones que pueden salir así. Con $k$ pequeño la
+nueva solución se parece mucho a $S$; con $k$ grande, poco.
+
+\begin{decision}[Decisión: vetar las columnas recién quitadas]
+Sin el veto del paso 2, el voraz volvería a meter muchas veces las mismas columnas que se
+acaban de sacar (por algo estaban en la solución) y la ``vecina'' sería la propia $S$. El
+veto solo dura lo que dura la reparación.
+\end{decision}
+
+\fragmento{base.c}{577}{595}
+
+\subsection{Números aleatorios, tiempo y precisión}
+
+\begin{itemize}
+  \item \textbf{Generador aleatorio propio.} No se usa la función \cod{rand()} de C porque da
+        secuencias distintas en cada sistema operativo. Se usa un generador \emph{xorshift}
+        de 64 bits escrito en \cod{base.c}: con la misma semilla, el programa hace
+        exactamente lo mismo en cualquier ordenador. Eso hace los experimentos
+        \textbf{reproducibles} y permite depurar.
+  \item \textbf{Criterio de parada por tiempo de CPU.} Todas las metaheurísticas se detienen
+        al consumir un tiempo de procesador fijado (5 segundos por defecto), medido con
+        \cod{clock()}. Es el criterio más justo para comparar algoritmos cuyas iteraciones
+        cuestan cantidades muy distintas (una iteración del temple dura microsegundos; una
+        generación del genético, milisegundos). Se mide tiempo de CPU y no de reloj para que
+        no influya lo ocupado que esté el ordenador.
+  \item \textbf{Tolerancia numérica.} Los costes son números reales. Para que un error de
+        redondeo de $10^{-13}$ no se tome por una mejora, ``$a$ mejora a $b$'' significa
+        $a<b-10^{-9}$ (constante \cod{EPS}). Además, el coste de la solución final se vuelve a
+        sumar desde cero antes de escribirlo.
+  \item \textbf{Comprobación independiente.} Antes de escribir el resultado,
+        \cod{sol\_comprobar} recuenta desde cero la cobertura de cada fila y el coste, sin
+        fiarse de los contadores. El programa solo declara una solución ``factible'' si pasa
+        esa comprobación. En las \input{tablas/num_ejecuciones} ejecuciones de esta memoria
+        la pasan todas.
+\end{itemize}
